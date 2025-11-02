@@ -39,6 +39,10 @@ jobs:
           cd app
           npm run build
 
+      - name: Copy data folder to build output
+        run: |
+          cp -r data app/dist/data
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
