@@ -6,7 +6,6 @@ interface StatusIndicatorProps {
 
 export function StatusIndicator({
   status,
-  showTitle,
   errorMessage,
 }: StatusIndicatorProps) {
   const getStatusContent = () => {

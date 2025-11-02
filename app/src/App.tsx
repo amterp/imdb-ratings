@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useShowCatalog } from './hooks/useShowCatalog';
 import { useShowData } from './hooks/useShowData';
 import { useUrlState } from './hooks/useUrlState';

@@ -14,5 +14,5 @@ export function getCacheBustingSuffix(): string {
   }
 
   const utcTime = `${now.getUTCFullYear()}${now.getUTCMonth()}${day}`;
-  return `?nocache=${utcTime.toString(16)}`;
+  return `?nocache=${utcTime}`;
 }

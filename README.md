@@ -55,3 +55,5 @@ Probably because of the first unrated pilot episode.
 
 Need to manage duplicates in the dataset. Currently there are 2 "The Office" series, one can't be accessed.
 Could add year and/or force selection.
+
+Game of Thrones doesn't work, for some reason?

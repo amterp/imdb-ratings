@@ -23,7 +23,7 @@ const SEASON_COLORS = [
 ];
 
 export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
-  const { hoveredEpisode, setHoveredEpisode, clearHover } = useHover();
+  const { setHoveredEpisode, clearHover } = useHover();
 
   // Calculate dynamic y-axis range
   const yAxisRange = useMemo(() => {
@@ -137,8 +137,8 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
   const handleHover = (event: Readonly<PlotMouseEvent>) => {
     if (event.points && event.points.length > 0) {
       const point = event.points[0];
-      if (point.customdata) {
-        const [seasonNumber, episodeNumber] = point.customdata as [number, number];
+      if (point.customdata && Array.isArray(point.customdata)) {
+        const [seasonNumber, episodeNumber] = point.customdata as unknown as [number, number];
         setHoveredEpisode(seasonNumber, episodeNumber);
       }
     }

@@ -5,10 +5,16 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/imdb-heatmap/',
+  base: process.env.NODE_ENV === 'production' ? '/imdb-heatmap/' : '/',
+  server: {
+    fs: {
+      allow: ['..'],
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    preserveSymlinks: false,
   },
 })
