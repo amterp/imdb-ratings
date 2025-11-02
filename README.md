@@ -1,6 +1,6 @@
 # IMDb Ratings
 
-Website that shows heatmaps of ratings of tv show episodes.
+Website that visualizes IMDb ratings of TV show episodes as interactive heatmaps.
 
 ![website](./assets/screenshot.png)
 
