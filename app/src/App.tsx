@@ -71,9 +71,9 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto">
+      <main className="w-full">
         {showData && currentShow && (
-          <div className="glass rounded-2xl p-8 overflow-hidden">
+          <div className="glass rounded-2xl p-8 mx-auto" style={{ width: 'fit-content', maxWidth: '95vw' }}>
             <HeatmapGrid showData={showData} />
           </div>
         )}
