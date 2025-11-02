@@ -1,18 +1,51 @@
-# Imdb-Heatmap
-[Website](https://mokronos.github.io/imdb-heatmap) that shows heatmaps of ratings of tv show episodes.
+# IMDb Ratings
 
-# Idea
-The idea for the site come from this [Website](https://vallandingham.me/seriesheat/#/). My main issues with the site were speed (its annoying to search) and that its not up to date.
+Website that shows heatmaps of ratings of tv show episodes.
 
-# How it works
-The python script downloads the data from imdb and saves the top 2500 shows(for now) as one {title, id} json file.
-It then generates json files for every one of those IDs, containing the ratings of every episode for every season.
+A fork of [mokronos](https://github.com/mokronos)'s excellent project [imdb-heatmap](https://github.com/mokronos/imdb-heatmap).
 
-The scripts run every 24h via a cronjob through github actions. The json files are then pushed to the repo.
+Main changes include:
 
-The website is pretty much pure vanilla js. It loads the {title, id} json file and lets the user search through it. Then loads the other jsons according to the search/selection.
+- Revamped frontend/theme/color scheme
+- TBC (I am planning more things, see [REVAMP.md](./REVAMP.md)).
 
-# Issues
+## How to Run
+
+Located in `app/` - Modern React + TypeScript application with updated UI:
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173 (or whichever port Vite assigns) in your browser.
+
+**Tech Stack:**
+
+- React 18 + TypeScript
+- Vite 7
+- TanStack Query (React Query)
+- React Router
+- Headless UI
+- Tailwind CSS v4
+
+**Requirements:** Node.js 22+ (tested with v25.1.0)
+
+## How it Works
+
+**Data Generation:**
+
+The Python script (`scripts/create_dataset.py`) downloads IMDb data and saves the top 2500 shows as one `{title, id}` JSON file (`data/titleId.json`). It then generates individual JSON files for each show ID, containing ratings for every episode across all seasons.
+
+The scripts run every 24h via a cron job through GitHub Actions. The generated JSON files are automatically pushed to the repo.
+
+**Frontend:**
+
+The React application loads the show catalog from `data/titleId.json`, provides an autocomplete search interface, and dynamically loads episode data for the selected show. Episode ratings are displayed as a color-coded heatmap using HSL color gradients (red → orange → yellow → green).
+
+## Issues
+
 Dataset generation takes way too long (1h48min) for 1000 shows. Currently using pandas to combine the databases. Takes a while to figure out which of the IDs are actually shows, and to collect all the IDs of the episodes. Probably can be optimized.
 
 Series "Married... with Children" doesn't get generated.

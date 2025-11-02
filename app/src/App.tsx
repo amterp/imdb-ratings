@@ -1,111 +1,110 @@
-import type { Component } from 'solid-js';
-import { createEffect, createResource, createMemo, createSignal, For, Index, Show, Suspense, useTransition, Match, Switch } from 'solid-js';
+import { useEffect } from 'react';
+import { useShowCatalog } from './hooks/useShowCatalog';
+import { useShowData } from './hooks/useShowData';
+import { useUrlState } from './hooks/useUrlState';
+import { SearchBar } from './components/SearchBar';
+import { HeatmapGrid } from './components/HeatmapGrid';
+import { StatusIndicator } from './components/StatusIndicator';
+import type { ShowMetadata } from './types';
 
-import NumberBox from './NumberBox';
-import { useParams } from '@solidjs/router';
-import { prepareData } from './utils';
+function App() {
+  const { showId, setShowId } = useUrlState();
+  const {
+    data: showCatalog,
+    isLoading: isCatalogLoading,
+    error: catalogError,
+  } = useShowCatalog();
 
-const App: Component = (props) => {
+  const {
+    data: showData,
+    isLoading: isShowLoading,
+    error: showError,
+  } = useShowData(showId);
 
-    async function fetchShow(id: string) {
-        if (!id) {
-            return;
-        }
-        const resp = await fetch(`/${id}.json`);
-        return resp.json();
-    }
+  // Find the current show's title
+  const currentShow = showCatalog?.find((show) => show.id === showId);
 
-    async function fetchShowMetas() {
-        const resp = await fetch(`/titleId.json`);
-        return resp.json();
-    }
+  const handleSelectShow = (show: ShowMetadata) => {
+    setShowId(show.id, show.title);
+  };
 
-    const [currentShow, setShow] = createSignal({"id": "", "title": ""});
-    const [query, setQuery] = createSignal("");
-    const [showData] = createResource(() => currentShow().id, fetchShow);
-    const [showMetas] = createResource(fetchShowMetas);
+  // Determine status for status indicator
+  const getStatus = () => {
+    if (isCatalogLoading) return 'loading';
+    if (catalogError) return 'error';
+    if (showId && isShowLoading) return 'loading';
+    if (showId && showError) return 'error';
+    if (showId && showData && currentShow) return 'show-loaded';
+    return 'ready';
+  };
 
-    const filteredMetas = () => {
+  const status = getStatus();
 
-        if (query() == "") {
-            return [];
-        }
-        if (showMetas()) {
-            return showMetas().filter((show) => show.title.toLowerCase().includes(query().toLowerCase())).slice(0, 5);
-        }
-
-    }
-
-    createEffect(() => {
-        var id = useParams().id
-        if (id && showMetas()) {
-            setShow(showMetas().find((show) => show.id == id))
-        }
-        console.log(id)
-        console.log(currentShow())
-    })
-
-    var prevData = null;
-
-
-    const preppedData = () => {
-        if (showData()) {
-            var prepData = prepareData(showData(), prevData);
-            prevData = showData();
-            return prepData;
-        }
-        return null;
-    };
-
-    return (
-        <div class="h-screen overflow-y-scroll">
-            <input placeholder="Search for TV show" type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 text-black" list="search" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} />
-            <For each={filteredMetas()} fallback={<p>Loading...</p>}>
-                {(show) => (
-                    <>
-                        <li class="content-center py-2 list-none">
-                            <a href={`/${show.id}`} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">{show.title}</a>
-                        </li>
-                    </>
-                )}
-            </For>
-
-            <div>Current Show: {currentShow().title}</div>
-
-            <For each={preppedData()}>
-                {(row) => (
-                    <>
-                        <div class="flex flex-none">
-                            <For each={row}>
-                                {(cell) => (
-                                    <div class="w-10 h-10 flex-none text-black m-[0.5px]">
-                                        <Switch>
-                                            <Match when={cell.type === "episode"}>
-                                                <NumberBox id={cell.new.id??""} number={cell.new.rating??0} previousNumber={cell.old.rating??0} steps={3} duration={200} />
-                                            </Match>
-                                            <Match when={cell.type === "seasondesc"}>
-                                                <Show when={cell.new > 0} fallback={<div></div>}>
-                                                    <div class="bg-neutral-700 text-center w-full h-full place-content-center text-center"> {cell.new} </div>
-                                                </Show>
-                                            </Match>
-                                            <Match when={cell.type === "episodedesc"}>
-                                                <Show when={cell.new > 0} fallback={<div></div>}>
-                                                    <div class="bg-neutral-700 w-full h-full place-content-center text-center"> {cell.new} </div>
-                                                </Show>
-                                            </Match>
-                                            <Match when={cell.type === "corner"}>
-                                                <div class="bg-neutral-600 w-full h-full place-content-center text-center"> {cell.value} </div>
-                                            </Match>
-                                        </Switch>
-                                    </div>
-                                )}
-                            </For>
-                        </div>
-                    </>
-                )}
-            </For>
+  return (
+    <div className="min-h-screen py-8 px-4">
+      {/* Header */}
+      <header className="max-w-7xl mx-auto mb-8">
+        <div className="glass rounded-2xl p-8 mb-6">
+          <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+            IMDb Series Heatmap
+          </h1>
+          <p className="text-center text-gray-400 text-sm">
+            Visualize TV show ratings at a glance
+          </p>
         </div>
-    );
+
+        <SearchBar
+          shows={showCatalog || []}
+          onSelectShow={handleSelectShow}
+          isLoading={isCatalogLoading}
+        />
+
+        <StatusIndicator
+          status={status}
+          showTitle={currentShow?.title}
+          errorMessage={
+            catalogError?.message ||
+            showError?.message ||
+            'Failed to load data'
+          }
+        />
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto">
+        {showData && currentShow && (
+          <div className="glass rounded-2xl p-8 overflow-hidden">
+            <HeatmapGrid showData={showData} />
+          </div>
+        )}
+
+        {!showId && !isCatalogLoading && (
+          <div className="text-center text-gray-400 mt-12">
+            <p className="text-lg">
+              Search for a TV show to view its episode ratings heatmap
+            </p>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto mt-12 text-center text-gray-500 text-sm">
+        <p>
+          Data from{' '}
+          <a
+            href="https://www.imdb.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 transition-smooth"
+          >
+            IMDb
+          </a>
+          {' · '}
+          Updated daily
+        </p>
+      </footer>
+    </div>
+  );
 }
 
 export default App;
