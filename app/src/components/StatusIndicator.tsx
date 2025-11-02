@@ -24,7 +24,7 @@ export function StatusIndicator({
           </span>
         );
       case 'show-loaded':
-        return <span className="text-white font-semibold">{showTitle}</span>;
+        return null;
       default:
         return null;
     }

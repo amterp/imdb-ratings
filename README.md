@@ -2,6 +2,8 @@
 
 Website that shows heatmaps of ratings of tv show episodes.
 
+![website](./assets/screenshot.png)
+
 A fork of [mokronos](https://github.com/mokronos)'s excellent project [imdb-heatmap](https://github.com/mokronos/imdb-heatmap).
 
 Main changes include:

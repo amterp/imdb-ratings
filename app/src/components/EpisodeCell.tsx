@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Episode } from '@/types';
 import { getColorForRating } from '@/utils/colorUtils';
 import { IMDB_URL } from '@/utils/constants';
+import { useHover } from '@/contexts/HoverContext';
 
 interface EpisodeCellProps {
   episode: Episode;
@@ -14,7 +15,22 @@ export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
     [episode.rating]
   );
 
+  const { hoveredEpisode, setHoveredEpisode, clearHover } = useHover();
+
   const episodeUrl = `${IMDB_URL}${episode.id}/`;
+
+  // Check if this cell is currently hovered (from context)
+  const isHighlighted =
+    hoveredEpisode.seasonNumber === seasonNumber &&
+    hoveredEpisode.episodeNumber === episode.episode;
+
+  const handleMouseEnter = () => {
+    setHoveredEpisode(seasonNumber, episode.episode);
+  };
+
+  const handleMouseLeave = () => {
+    clearHover();
+  };
 
   if (episode.rating === 0) {
     return <td className="w-10 h-10 min-w-10 min-h-10 text-center border border-slate-700" />;
@@ -22,8 +38,13 @@ export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
 
   return (
     <td
-      className="w-10 h-10 min-w-10 min-h-10 text-center border border-slate-700 transition-smooth hover:scale-105 hover:shadow-lg"
-      style={{ backgroundColor }}
+      className="w-10 h-10 min-w-10 min-h-10 text-center transition-smooth hover:scale-105 hover:shadow-lg"
+      style={{
+        backgroundColor,
+        border: isHighlighted ? '3px solid #06b6d4' : '1px solid #334155',
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <a
         href={episodeUrl}

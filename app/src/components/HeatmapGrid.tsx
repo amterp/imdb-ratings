@@ -4,6 +4,7 @@ import { EpisodeCell } from './EpisodeCell';
 import { SeasonHeader } from './SeasonHeader';
 import { EpisodeHeader } from './EpisodeHeader';
 import { SeasonStatsTable } from './SeasonStatsTable';
+import { RatingsLineGraph } from './RatingsLineGraph';
 
 interface HeatmapGridProps {
   showData: ShowData;
@@ -16,7 +17,7 @@ export function HeatmapGrid({ showData }: HeatmapGridProps) {
   }, [showData]);
 
   return (
-    <div className="flex gap-8 items-start">
+    <div className="flex gap-8 items-center">
       {/* Episode ratings table - scrollable if needed */}
       <div className="overflow-x-auto">
         <table className="border-collapse">
@@ -55,6 +56,9 @@ export function HeatmapGrid({ showData }: HeatmapGridProps) {
       <div className="flex-shrink-0">
         <SeasonStatsTable showData={showData} />
       </div>
+
+      {/* Ratings line graph - always visible */}
+      <RatingsLineGraph showData={showData} />
     </div>
   );
 }
