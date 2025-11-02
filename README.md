@@ -2,6 +2,8 @@
 
 Website that visualizes IMDb ratings of TV show episodes as interactive heatmaps.
 
+**Live Site:** https://amterp.github.io/imdb-ratings/
+
 ![website](./assets/screenshot.png)
 
 A fork of [mokronos](https://github.com/mokronos)'s excellent project [imdb-heatmap](https://github.com/mokronos/imdb-heatmap).
@@ -9,7 +11,9 @@ A fork of [mokronos](https://github.com/mokronos)'s excellent project [imdb-heat
 Main changes include:
 
 - Revamped frontend/theme/color scheme
-- TBC (I am planning more things, see [REVAMP.md](./REVAMP.md)).
+- Stats table (mean/stddev, etc per season)
+- Ratings charting
+- [And more thinks planned!](./REVAMP.md)
 
 ## How to Run
 

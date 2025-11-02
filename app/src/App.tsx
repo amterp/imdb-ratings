@@ -111,6 +111,15 @@ function App() {
             </a>
             {' · '}
             Updated daily
+            {' · '}
+            <a
+              href="https://github.com/amterp/imdb-ratings"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-smooth"
+            >
+              Source
+            </a>
           </p>
         </footer>
       </div>

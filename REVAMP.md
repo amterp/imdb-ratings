@@ -4,11 +4,8 @@
 
 ### User-facing
 
-- Mean/Median/Stddev column per season (row)
 - Add 'curated score' column? Per season, per show. Mix of mean/stddev/vote count.
-- Modernize frontend -- grey background looks rough. Make nice & modern, while maintaining snappy/responsive UI.
 - Episode name when hovering on episode?
-- Graph (plotly) of episode ratings: one line per season, including average
 - New page: viewing/comparing shows
   - Allow ranking shows by some combination of criteria e.g. # of episodes, # votes, consistency, etc
   - Graph averages for multiple shows: each point on x axis is season, each line a different show
