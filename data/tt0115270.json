@@ -17,7 +17,7 @@
         },
         {
             "episode": 4,
-            "rating": 7.5,
+            "rating": 7.6,
             "id": "tt0648267"
         },
         {
@@ -42,7 +42,7 @@
         },
         {
             "episode": 9,
-            "rating": 7.2,
+            "rating": 7.3,
             "id": "tt0648279"
         },
         {
@@ -52,7 +52,7 @@
         },
         {
             "episode": 11,
-            "rating": 7.3,
+            "rating": 7.4,
             "id": "tt0648278"
         },
         {
@@ -107,14 +107,14 @@
         },
         {
             "episode": 22,
-            "rating": 8.0,
+            "rating": 8.1,
             "id": "tt0648250"
         }
     ],
     [
         {
             "episode": 1,
-            "rating": 8.0,
+            "rating": 8.1,
             "id": "tt0648262"
         },
         {
@@ -129,7 +129,7 @@
         },
         {
             "episode": 4,
-            "rating": 7.9,
+            "rating": 8.0,
             "id": "tt0648246"
         },
         {
@@ -139,22 +139,22 @@
         },
         {
             "episode": 6,
-            "rating": 8.0,
+            "rating": 8.1,
             "id": "tt0648263"
         },
         {
             "episode": 7,
-            "rating": 7.3,
+            "rating": 7.4,
             "id": "tt0648214"
         },
         {
             "episode": 8,
-            "rating": 7.5,
+            "rating": 7.6,
             "id": "tt0648265"
         },
         {
             "episode": 9,
-            "rating": 8.3,
+            "rating": 8.4,
             "id": "tt0648238"
         },
         {
@@ -164,7 +164,7 @@
         },
         {
             "episode": 11,
-            "rating": 7.5,
+            "rating": 7.6,
             "id": "tt0648234"
         },
         {
@@ -189,7 +189,7 @@
         },
         {
             "episode": 16,
-            "rating": 7.8,
+            "rating": 7.9,
             "id": "tt0648253"
         },
         {
@@ -214,7 +214,7 @@
         },
         {
             "episode": 21,
-            "rating": 8.7,
+            "rating": 8.8,
             "id": "tt0648260"
         },
         {
@@ -224,7 +224,7 @@
         },
         {
             "episode": 23,
-            "rating": 8.2,
+            "rating": 8.3,
             "id": "tt0648272"
         }
     ],
@@ -236,7 +236,7 @@
         },
         {
             "episode": 2,
-            "rating": 6.9,
+            "rating": 7.0,
             "id": "tt0648230"
         },
         {
@@ -261,7 +261,7 @@
         },
         {
             "episode": 7,
-            "rating": 7.5,
+            "rating": 7.6,
             "id": "tt0648275"
         },
         {
@@ -271,17 +271,17 @@
         },
         {
             "episode": 9,
-            "rating": 7.1,
+            "rating": 7.2,
             "id": "tt0648248"
         },
         {
             "episode": 10,
-            "rating": 7.2,
+            "rating": 7.3,
             "id": "tt0648223"
         },
         {
             "episode": 11,
-            "rating": 7.6,
+            "rating": 7.7,
             "id": "tt0648226"
         },
         {
@@ -291,12 +291,12 @@
         },
         {
             "episode": 13,
-            "rating": 7.9,
+            "rating": 8.0,
             "id": "tt0648219"
         },
         {
             "episode": 14,
-            "rating": 6.9,
+            "rating": 7.0,
             "id": "tt0648244"
         },
         {
@@ -306,7 +306,7 @@
         },
         {
             "episode": 16,
-            "rating": 7.7,
+            "rating": 7.8,
             "id": "tt0648255"
         },
         {
@@ -321,22 +321,22 @@
         },
         {
             "episode": 19,
-            "rating": 7.3,
+            "rating": 7.4,
             "id": "tt0648257"
         },
         {
             "episode": 20,
-            "rating": 7.5,
+            "rating": 7.6,
             "id": "tt0648247"
         },
         {
             "episode": 21,
-            "rating": 7.8,
+            "rating": 7.9,
             "id": "tt0648276"
         },
         {
             "episode": 22,
-            "rating": 7.9,
+            "rating": 8.0,
             "id": "tt0648235"
         }
     ]
