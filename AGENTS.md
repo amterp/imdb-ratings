@@ -35,7 +35,7 @@ React 19 + TypeScript + Vite + Tailwind CSS v4 + TanStack Query application.
 
 **Key types (`src/types/index.ts`):**
 - `ShowData = Season[]` where `Season = Episode[]`
-- `Episode = { episode: number, rating: number, votes: number | null, id: string }`
+- `Episode = { episode: number, rating: number | null, votes: number | null, id: string | null }`
 - `CompactShowData` / `CompactEpisode` - wire format types (arrays deserialized in `useShowData`)
 
 **Color mapping:** HSL gradient from red (low) to green (high) in `src/utils/colorUtils.ts`
@@ -57,12 +57,15 @@ GitHub Pages deployment via Actions - builds the app and copies `data/` folder t
 Each show file (`data/{imdbId}.json`) uses a compact array format:
 ```json
 [
-  [[1,8.5,12345,"tt1234567"],[2,8.8,11000,"tt1234568"]],  // Season 1
-  [[1,9.0,15000,"tt1234569"],[2,8.7,14000,"tt1234570"]]   // Season 2
+  [[8.5,12345,"tt1234567"],[8.8,11000,"tt1234568"],null,[8.7,14000,"tt1234570"]],
+  [[9.0,15000,"tt1234569"],[8.7,14000,"tt1234570"]]
 ]
 ```
 
-**Episode schema:** `[episode, rating, votes, id]` — positional array, no keys.
+**Episode schema:** `[rating, votes, id]` or `null`
+- Episode number is implicit: `index + 1`
+- `null` indicates a missing episode (no IMDb data)
+- Array length = max episode number for that season
 
 The frontend deserializes this to `Episode` objects in `useShowData.ts`.
 

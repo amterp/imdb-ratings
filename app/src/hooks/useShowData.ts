@@ -5,7 +5,13 @@ import { getCacheBustingSuffix } from '@/utils/cacheUtils';
 
 function parseCompactShow(data: CompactShowData): ShowData {
   return data.map(season =>
-    season.map(([episode, rating, votes, id]) => ({ episode, rating, votes, id }))
+    season.map((ep, index) => {
+      if (ep === null) {
+        return { episode: index + 1, rating: null, votes: null, id: null };
+      }
+      const [rating, votes, id] = ep;
+      return { episode: index + 1, rating, votes, id };
+    })
   );
 }
 

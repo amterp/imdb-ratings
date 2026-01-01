@@ -155,12 +155,21 @@ def gen_season_ratings(
 
     # Process each season
     for season in show_episodes["seasonNumber"].unique():
-        season_ratings = []
         season_episodes = show_episodes[show_episodes["seasonNumber"] == season]
+        # Filter to valid episode numbers (IMDb sometimes has episode 0 for specials)
+        season_episodes = season_episodes[season_episodes["episodeNumber"] > 0]
 
-        for idx, row in enumerate(season_episodes.itertuples()):
+        if season_episodes.empty:
+            continue
+
+        max_ep = season_episodes["episodeNumber"].max()
+
+        # Initialize with None for all episode slots (episode number = index + 1)
+        season_data = [None] * max_ep
+
+        for row in season_episodes.itertuples():
             episode_id = row.tconst
-            episode_number = idx + 1
+            episode_num = row.episodeNumber
 
             # O(1) lookup for ratings
             episode_data = ratings_dict.get(episode_id)
@@ -171,10 +180,10 @@ def gen_season_ratings(
             votes = episode_data["numVotes"]
             episode_votes = int(votes) if pd.notna(votes) else None
 
-            season_ratings.append([episode_number, episode_rating, episode_votes, episode_id])
+            # Format: [rating, votes, id] - episode number is implicit (index + 1)
+            season_data[episode_num - 1] = [episode_rating, episode_votes, episode_id]
 
-        if season_ratings:
-            show_ratings.append(season_ratings)
+        show_ratings.append(season_data)
 
     # Write JSON in one go (preserving original formatting)
     with open(f"{DATA_DIR}{parent_id}.json", "w") as f:

@@ -4,6 +4,7 @@ import { useUrlState } from './hooks/useUrlState';
 import { SearchBar } from './components/SearchBar';
 import { HeatmapGrid } from './components/HeatmapGrid';
 import { StatusIndicator } from './components/StatusIndicator';
+import { EpisodeInfoPanel } from './components/EpisodeInfoPanel';
 import { HoverProvider } from './contexts/HoverContext';
 import type { ShowMetadata } from './types';
 
@@ -42,6 +43,7 @@ function App() {
 
   return (
     <HoverProvider>
+      <EpisodeInfoPanel showData={showData} />
       <div className="min-h-screen py-8 px-4">
         {/* Header */}
         <header className="max-w-7xl mx-auto mb-8">

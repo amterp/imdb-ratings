@@ -32,7 +32,7 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
 
     showData.forEach((season) => {
       season.forEach((episode) => {
-        if (episode.rating > 0) {
+        if (episode.rating !== null && episode.rating > 0) {
           minRating = Math.min(minRating, episode.rating);
           maxRating = Math.max(maxRating, episode.rating);
         }
@@ -53,23 +53,20 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
       const seasonNumber = seasonIndex + 1;
       const color = SEASON_COLORS[seasonIndex % SEASON_COLORS.length];
 
-      // Extract episode numbers and ratings
-      const x = season.map((episode) => episode.episode);
-      const y = season.map((episode) => episode.rating);
+      // Filter to only episodes with valid ratings (not null, > 0)
+      const validEpisodes = season.filter((ep) => ep.rating !== null && ep.rating > 0);
 
-      // Filter out unrated episodes (rating = 0) for display
-      const validIndices = y.map((rating, idx) => (rating > 0 ? idx : -1)).filter((idx) => idx !== -1);
-      const validX = validIndices.map((idx) => x[idx]);
-      const validY = validIndices.map((idx) => y[idx]);
+      const validX = validEpisodes.map((ep) => ep.episode);
+      const validY = validEpisodes.map((ep) => ep.rating as number);  // Safe cast since we filtered
 
       // Create hover text
-      const hoverText = validIndices.map(
-        (idx) => `Season ${seasonNumber}<br>Episode ${season[idx].episode}<br>Rating: ${season[idx].rating.toFixed(2)}`
+      const hoverText = validEpisodes.map(
+        (ep) => `Season ${seasonNumber}<br>Episode ${ep.episode}<br>Rating: ${(ep.rating as number).toFixed(2)}`
       );
 
       // Use consistent marker sizes
-      const markerSizes = validIndices.map(() => 8);
-      const markerBorderWidths = validIndices.map(() => 0);
+      const markerSizes = validEpisodes.map(() => 8);
+      const markerBorderWidths = validEpisodes.map(() => 0);
 
       // Create trace for this season
       traces.push({
@@ -93,11 +90,11 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
         hovertext: hoverText,
         hoverinfo: 'text',
         // Store season data for hover handling
-        customdata: validIndices.map((idx) => [seasonNumber, season[idx].episode]),
+        customdata: validEpisodes.map((ep) => [seasonNumber, ep.episode]),
       } as Plotly.Data);
 
       // Calculate linear regression for this season
-      if (validIndices.length > 1) {
+      if (validEpisodes.length > 1) {
         // Linear regression: y = mx + b
         const n = validX.length;
         const sumX = validX.reduce((sum, val) => sum + val, 0);

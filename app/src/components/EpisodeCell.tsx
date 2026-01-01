@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { Episode } from '@/types';
 import { getColorForRating } from '@/utils/colorUtils';
 import { IMDB_URL } from '@/utils/constants';
@@ -10,12 +9,26 @@ interface EpisodeCellProps {
 }
 
 export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
-  const { backgroundColor, textColor } = useMemo(
-    () => getColorForRating(episode.rating),
-    [episode.rating]
-  );
-
   const { hoveredEpisode, setHoveredEpisode, clearHover } = useHover();
+
+  // Missing episode (no IMDb data) - early return before hooks that depend on rating
+  if (episode.rating === null) {
+    return (
+      <td
+        className="w-10 h-10 min-w-10 min-h-10 text-center bg-slate-700 border border-slate-600"
+        title={`S${seasonNumber}E${episode.episode} - No data`}
+      >
+        <span className="text-slate-500 text-xs">—</span>
+      </td>
+    );
+  }
+
+  if (episode.rating === 0) {
+    return <td className="w-10 h-10 min-w-10 min-h-10 text-center border border-slate-700" />;
+  }
+
+  // At this point, rating is guaranteed to be a positive number
+  const { backgroundColor, textColor } = getColorForRating(episode.rating);
 
   const episodeUrl = `${IMDB_URL}${episode.id}/`;
 
@@ -31,10 +44,6 @@ export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
   const handleMouseLeave = () => {
     clearHover();
   };
-
-  if (episode.rating === 0) {
-    return <td className="w-10 h-10 min-w-10 min-h-10 text-center border border-slate-700" />;
-  }
 
   return (
     <td

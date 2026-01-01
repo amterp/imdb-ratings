@@ -1,10 +1,12 @@
+import type { Episode } from '@/types';
+
 /**
  * Calculate the mean (average) of an array of ratings.
- * Excludes episodes with rating = 0.
+ * Excludes null/missing episodes and episodes with rating = 0.
  * Returns 0 if no valid ratings are found.
  */
-export function calculateMean(ratings: number[]): number {
-  const validRatings = ratings.filter((rating) => rating > 0);
+export function calculateMean(ratings: (number | null)[]): number {
+  const validRatings = ratings.filter((rating): rating is number => rating !== null && rating > 0);
   if (validRatings.length === 0) return 0;
 
   const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
@@ -13,11 +15,11 @@ export function calculateMean(ratings: number[]): number {
 
 /**
  * Calculate the median of an array of ratings.
- * Excludes episodes with rating = 0.
+ * Excludes null/missing episodes and episodes with rating = 0.
  * Returns 0 if no valid ratings are found.
  */
-export function calculateMedian(ratings: number[]): number {
-  const validRatings = ratings.filter((rating) => rating > 0);
+export function calculateMedian(ratings: (number | null)[]): number {
+  const validRatings = ratings.filter((rating): rating is number => rating !== null && rating > 0);
   if (validRatings.length === 0) return 0;
 
   const sorted = [...validRatings].sort((a, b) => a - b);
@@ -34,11 +36,11 @@ export function calculateMedian(ratings: number[]): number {
 
 /**
  * Calculate the standard deviation of an array of ratings.
- * Excludes episodes with rating = 0.
+ * Excludes null/missing episodes and episodes with rating = 0.
  * Returns 0 if no valid ratings are found.
  */
-export function calculateStdDev(ratings: number[]): number {
-  const validRatings = ratings.filter((rating) => rating > 0);
+export function calculateStdDev(ratings: (number | null)[]): number {
+  const validRatings = ratings.filter((rating): rating is number => rating !== null && rating > 0);
   if (validRatings.length === 0) return 0;
 
   const mean = calculateMean(validRatings);
@@ -46,4 +48,46 @@ export function calculateStdDev(ratings: number[]): number {
   const variance = squaredDiffs.reduce((acc, diff) => acc + diff, 0) / validRatings.length;
 
   return Math.sqrt(variance);
+}
+
+/**
+ * Calculate the vote-weighted mean of episode ratings.
+ * Weight each rating by its vote count: Σ(rating × votes) / Σ(votes)
+ * Excludes episodes with null rating/votes or rating = 0.
+ * Returns 0 if no valid episodes are found.
+ */
+export function calculateWeightedMean(episodes: Episode[]): number {
+  const validEpisodes = episodes.filter(
+    (ep): ep is Episode & { rating: number; votes: number } =>
+      ep.rating !== null && ep.rating > 0 && ep.votes !== null && ep.votes > 0
+  );
+  if (validEpisodes.length === 0) return 0;
+
+  const weightedSum = validEpisodes.reduce((acc, ep) => acc + ep.rating * ep.votes, 0);
+  const totalVotes = validEpisodes.reduce((acc, ep) => acc + ep.votes, 0);
+
+  return weightedSum / totalVotes;
+}
+
+/**
+ * Calculate the total number of votes for a season.
+ * Excludes episodes with null votes.
+ * Returns 0 if no valid episodes are found.
+ */
+export function calculateTotalVotes(episodes: Episode[]): number {
+  return episodes.reduce((acc, ep) => acc + (ep.votes ?? 0), 0);
+}
+
+/**
+ * Format a vote count as an abbreviated string.
+ * e.g., 1234 -> "1.2K", 1234567 -> "1.2M"
+ */
+export function formatVotes(votes: number): string {
+  if (votes >= 1_000_000) {
+    return `${(votes / 1_000_000).toFixed(1)}M`;
+  }
+  if (votes >= 1_000) {
+    return `${(votes / 1_000).toFixed(1)}K`;
+  }
+  return votes.toString();
 }
