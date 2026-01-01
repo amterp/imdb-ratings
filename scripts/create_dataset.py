@@ -21,6 +21,13 @@ NAMES_URL = "https://datasets.imdbws.com/title.basics.tsv.gz"
 DATA_DIR = "data/"
 NUM_SHOWS = 2500
 
+
+def clear_data_dir():
+    """Remove all JSON files from the data directory."""
+    data_path = Path(DATA_DIR)
+    for f in data_path.glob("*.json"):
+        f.unlink()
+
 # Worker process globals (initialized via pool initializer)
 _ratings_dict = None
 _episodes_by_parent = None
@@ -257,6 +264,9 @@ def main():
             parent_votes = parent_votes.sort_values(by=["numVotes"], ascending=False)
             parent_votes = parent_votes.head(num_shows)
             logger.info(f"Selected top {len(parent_votes)} shows by vote count")
+
+        with timed_phase("Clear existing data"):
+            clear_data_dir()
 
         with timed_phase("Generate titleId.json"):
             gen_idtitle(parent_votes, names_dict)
