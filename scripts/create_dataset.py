@@ -91,7 +91,14 @@ def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str]) -> None:
         title_ids.append({"id": show_id, "title": title})
 
     with open(f"{DATA_DIR}titleId.json", "w") as f:
-        json.dump(title_ids, f, separators=(',', ':'))
+        f.write("[\n")
+        for idx, entry in enumerate(title_ids):
+            entry_json = json.dumps(entry, separators=(',', ':'))
+            if idx == len(title_ids) - 1:
+                f.write(f"{entry_json}\n")
+            else:
+                f.write(f"{entry_json},\n")
+        f.write("]\n")
 
     logger.info(f"Generated titleId.json with {len(title_ids)} shows")
 
@@ -110,7 +117,7 @@ def gen_season_ratings(
     except KeyError:
         # No episodes found for this show
         with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-            json.dump([], f)
+            f.write("[]\n")
         return
 
     # Filter and sort
@@ -121,7 +128,7 @@ def gen_season_ratings(
 
     if show_episodes.empty:
         with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-            json.dump([], f)
+            f.write("[]\n")
         return
 
     show_episodes["seasonNumber"] = show_episodes["seasonNumber"].astype(int)
@@ -152,7 +159,24 @@ def gen_season_ratings(
             show_ratings.append(season_ratings)
 
     with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-        json.dump(show_ratings, f, separators=(',', ':'))
+        if not show_ratings:
+            f.write("[]\n")
+        else:
+            f.write("[\n[\n")
+            for season_idx, season in enumerate(show_ratings):
+                is_last_season = season_idx == len(show_ratings) - 1
+                for ep_idx, episode in enumerate(season):
+                    ep_json = json.dumps(episode, separators=(',', ':'))
+                    is_last_ep = ep_idx == len(season) - 1
+                    if is_last_ep:
+                        f.write(f"{ep_json}\n")
+                    else:
+                        f.write(f"{ep_json},\n")
+                if is_last_season:
+                    f.write("]\n")
+                else:
+                    f.write("],\n[\n")
+            f.write("]\n")
 
 
 def main():
