@@ -217,6 +217,8 @@ def main():
             shutil.rmtree(CACHE_DIR)
             logger.info("Cache cleared")
 
+    Path(DATA_DIR).mkdir(exist_ok=True)
+
     total_start = time.time()
 
     # Download datasets
