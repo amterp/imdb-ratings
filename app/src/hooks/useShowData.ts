@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import type { ShowData } from '@/types';
+import type { ShowData, CompactShowData } from '@/types';
 import { SERIES_URL } from '@/utils/constants';
 import { getCacheBustingSuffix } from '@/utils/cacheUtils';
+
+function parseCompactShow(data: CompactShowData): ShowData {
+  return data.map(season =>
+    season.map(([episode, rating, votes, id]) => ({ episode, rating, votes, id }))
+  );
+}
 
 async function fetchShowData(showId: string): Promise<ShowData> {
   const cacheSuffix = getCacheBustingSuffix();
@@ -11,7 +17,8 @@ async function fetchShowData(showId: string): Promise<ShowData> {
   if (!response.ok) {
     throw new Error(`Failed to fetch show data for ${showId}`);
   }
-  return response.json();
+  const compactData: CompactShowData = await response.json();
+  return parseCompactShow(compactData);
 }
 
 export function useShowData(showId: string | null) {

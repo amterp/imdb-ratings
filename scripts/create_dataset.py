@@ -21,7 +21,7 @@ def gen_idtitle(parent_votes, names):
     print("generated title_ids overview")
 
     with open(f"{DATA_DIR}titleId.json", "w") as f:
-        json.dump(title_ids, f, indent=4)
+        json.dump(title_ids, f, separators=(',', ':'))
 
     print("saved title_ids overview to disk")
 
@@ -59,7 +59,7 @@ def gen_season_ratings(parent_id, ratings, episodes):
             episode_rating = episode_data["averageRating"].iloc[0]
             episode_votes = int(episode_data["numVotes"].iloc[0]) if not pd.isna(episode_data["numVotes"].iloc[0]) else None
 
-            data = {"episode": episode_number, "rating": episode_rating, "votes": episode_votes, "id": episode}
+            data = [episode_number, episode_rating, episode_votes, episode]
             season_ratings.append(data)
 
         show_ratings.append(season_ratings)
@@ -67,7 +67,7 @@ def gen_season_ratings(parent_id, ratings, episodes):
     print(f"generated ratings for {parent_id}")
 
     with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-        json.dump(show_ratings, f, indent=4)
+        json.dump(show_ratings, f, separators=(',', ':'))
 
     print(f"saved ratings for {parent_id} to disk")
         
