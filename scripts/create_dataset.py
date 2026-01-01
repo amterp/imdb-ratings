@@ -1,4 +1,4 @@
-import requests
+import argparse
 import json
 import pandas as pd
 
@@ -73,10 +73,12 @@ def gen_season_ratings(parent_id, ratings, episodes):
         
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate IMDb ratings data files")
+    parser.add_argument("--shows", nargs="+", metavar="ID",
+                        help="Generate data for specific show IDs only (e.g., tt0903747 tt0944947)")
+    args = parser.parse_args()
 
-    names = requests.get(NAMES_URL)
-    episodes = requests.get(EPISODES_URL)
-    votes = requests.get(VOTES_URL)
+    print("downloading datasets...")
 
     names = pd.read_csv(NAMES_URL,
                         header=0,
@@ -102,27 +104,34 @@ def main():
                         )
     print("loaded votes dataset")
 
-    parent_shows = episodes["parentTconst"].unique()
-
-    # get ids of parent shows that are top 1000 in votes
-    # get the votes for the shows overall
-    parent_votes = votes[votes["tconst"].isin(parent_shows)]
-    parent_votes = parent_votes.sort_values(by=["numVotes"], ascending=False)
-    parent_votes = parent_votes[:NUM_SHOWS]
-    print("generated list of shows sorted by votes")
-
     episodes = episodes[episodes["episodeNumber"] != "\\N"]
     print("removed episodes with no episode/season number")
 
-    gen_idtitle(parent_votes, names)
+    if args.shows:
+        # Generate data for specific shows only
+        target_shows = args.shows
+        print(f"targeting specific shows: {target_shows}")
+        for idx, show_id in enumerate(target_shows):
+            gen_season_ratings(show_id, votes, episodes)
+            print(f"finished generation for {show_id} ({idx+1}/{len(target_shows)})")
+    else:
+        # Full run: top NUM_SHOWS by votes
+        parent_shows = episodes["parentTconst"].unique()
+        parent_votes = votes[votes["tconst"].isin(parent_shows)]
+        parent_votes = parent_votes.sort_values(by=["numVotes"], ascending=False)
+        parent_votes = parent_votes[:NUM_SHOWS]
+        print(f"generated list of top {NUM_SHOWS} shows sorted by votes")
 
-    for idx, parent_id in enumerate(parent_votes["tconst"]):
-        gen_season_ratings(parent_id, votes, episodes)
-        print(f"finished generation for {parent_id} ({idx+1}/{NUM_SHOWS})")
-    
-    # generate tmp file to indicate that the dataset has been created successfully
-    with open(f"done", "w") as f:
-        f.write("done")
+        gen_idtitle(parent_votes, names)
+
+        for idx, parent_id in enumerate(parent_votes["tconst"]):
+            gen_season_ratings(parent_id, votes, episodes)
+            print(f"finished generation for {parent_id} ({idx+1}/{NUM_SHOWS})")
+
+        # generate tmp file to indicate that the dataset has been created successfully
+        with open(f"done", "w") as f:
+            f.write("done")
+
     print("done")
 
 
