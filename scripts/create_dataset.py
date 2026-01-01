@@ -1,11 +1,16 @@
 import argparse
 import json
 import logging
+import shutil
 import time
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
+from pathlib import Path
 
 import pandas as pd
+
+CACHE_DIR = Path("/tmp/imdb-heatmap")
 
 VOTES_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 EPISODES_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
@@ -34,12 +39,26 @@ def timed_phase(name: str):
 
 
 def download_dataset(name: str, url: str, usecols: list[str]) -> pd.DataFrame:
-    """Download a single dataset with timing."""
-    logger.info(f"Downloading {name}...")
+    """Download a single dataset with timing, using cache if available."""
+    filename = url.split("/")[-1]
+    cache_path = CACHE_DIR / filename
     start = time.time()
-    df = pd.read_csv(url, header=0, usecols=usecols, compression="gzip", sep="\t")
-    elapsed = time.time() - start
-    logger.info(f"Downloaded {name} in {elapsed:.1f}s ({len(df):,} rows)")
+
+    if cache_path.exists():
+        logger.info(f"Loading {name} from cache...")
+        df = pd.read_csv(cache_path, header=0, usecols=usecols, compression="gzip", sep="\t")
+        elapsed = time.time() - start
+        logger.info(f"Loaded {name} from cache in {elapsed:.1f}s ({len(df):,} rows)")
+    else:
+        logger.info(f"Downloading {name}...")
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(url) as response:
+            data = response.read()
+        cache_path.write_bytes(data)
+        df = pd.read_csv(cache_path, header=0, usecols=usecols, compression="gzip", sep="\t")
+        elapsed = time.time() - start
+        logger.info(f"Downloaded {name} in {elapsed:.1f}s ({len(df):,} rows)")
+
     return df
 
 
@@ -142,7 +161,14 @@ def main():
                         help="Generate data for specific show IDs only (e.g., tt0903747 tt0944947)")
     parser.add_argument("-n", "--num-shows", type=int, default=NUM_SHOWS, metavar="N",
                         help=f"Number of top shows to process (default: {NUM_SHOWS})")
+    parser.add_argument("--clear-cache", action="store_true",
+                        help="Clear cached IMDb data files before running")
     args = parser.parse_args()
+
+    if args.clear_cache:
+        if CACHE_DIR.exists():
+            shutil.rmtree(CACHE_DIR)
+            logger.info("Cache cleared")
 
     total_start = time.time()
 
