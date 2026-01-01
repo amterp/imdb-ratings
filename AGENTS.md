@@ -65,3 +65,8 @@ Each show file (`data/{imdbId}.json`) uses a compact array format:
 **Episode schema:** `[episode, rating, votes, id]` — positional array, no keys.
 
 The frontend deserializes this to `Episode` objects in `useShowData.ts`.
+
+## Rad Scripts
+
+You may have to write Rad scripts. See the [RAD_SYNTAX.md](./RAD_SYNTAX.md) reference file for help on how.
+The local [dev](./dev) script is an example of this.

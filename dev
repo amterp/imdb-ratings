@@ -4,8 +4,12 @@ Facilitates imdb-ratings development.
 ---
 args:
     run r bool   # Run in dev.
+    data d int?  # Run the data script for this many top shows.
+
+    data range [0,]
 
 if run: 
     $`cd app && npm run dev`
 
-
+if data:
+    $`python scripts/create_dataset.py -n {data}`
