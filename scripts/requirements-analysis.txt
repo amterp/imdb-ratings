@@ -1,0 +1,4 @@
+requests==2.22.0
+polars==1.18.0
+matplotlib>=3.8.0
+numpy
