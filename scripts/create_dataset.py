@@ -1,11 +1,13 @@
 import argparse
 import json
 import logging
+import os
 import shutil
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
+from multiprocessing import Pool, get_context
 from pathlib import Path
 
 import pandas as pd
@@ -18,6 +20,23 @@ NAMES_URL = "https://datasets.imdbws.com/title.basics.tsv.gz"
 
 DATA_DIR = "data/"
 NUM_SHOWS = 2500
+
+# Worker process globals (initialized via pool initializer)
+_ratings_dict = None
+_episodes_by_parent = None
+
+
+def _init_worker(ratings_dict, episodes_by_parent):
+    """Initialize worker process with shared data."""
+    global _ratings_dict, _episodes_by_parent
+    _ratings_dict = ratings_dict
+    _episodes_by_parent = episodes_by_parent
+
+
+def _process_show(parent_id):
+    """Worker function to process a single show."""
+    gen_season_ratings(parent_id, _ratings_dict, _episodes_by_parent)
+    return parent_id
 
 # Configure logging with timestamps
 logging.basicConfig(
@@ -106,15 +125,14 @@ def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str]) -> None:
 def gen_season_ratings(
     parent_id: str,
     ratings_dict: dict[str, dict],
-    episodes_by_parent: pd.core.groupby.DataFrameGroupBy
+    episodes_by_parent: dict[str, pd.DataFrame]
 ) -> None:
     """Generate ratings for a single show using pre-indexed lookups."""
     show_ratings = []
 
     # O(1) lookup for episodes of this show
-    try:
-        show_episodes = episodes_by_parent.get_group(parent_id)
-    except KeyError:
+    show_episodes = episodes_by_parent.get(parent_id)
+    if show_episodes is None:
         # No episodes found for this show
         with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
             f.write("[]\n")
@@ -140,8 +158,8 @@ def gen_season_ratings(
         season_ratings = []
         season_episodes = show_episodes[show_episodes["seasonNumber"] == season]
 
-        for idx, (_, row) in enumerate(season_episodes.iterrows()):
-            episode_id = row["tconst"]
+        for idx, row in enumerate(season_episodes.itertuples()):
+            episode_id = row.tconst
             episode_number = idx + 1
 
             # O(1) lookup for ratings
@@ -158,25 +176,21 @@ def gen_season_ratings(
         if season_ratings:
             show_ratings.append(season_ratings)
 
+    # Write JSON in one go (preserving original formatting)
     with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
         if not show_ratings:
             f.write("[]\n")
         else:
-            f.write("[\n[\n")
+            lines = ["[", "["]
             for season_idx, season in enumerate(show_ratings):
                 is_last_season = season_idx == len(show_ratings) - 1
                 for ep_idx, episode in enumerate(season):
                     ep_json = json.dumps(episode, separators=(',', ':'))
                     is_last_ep = ep_idx == len(season) - 1
-                    if is_last_ep:
-                        f.write(f"{ep_json}\n")
-                    else:
-                        f.write(f"{ep_json},\n")
-                if is_last_season:
-                    f.write("]\n")
-                else:
-                    f.write("],\n[\n")
-            f.write("]\n")
+                    lines.append(ep_json if is_last_ep else f"{ep_json},")
+                lines.append("]" if is_last_season else "],\n[")
+            lines.append("]")
+            f.write("\n".join(lines) + "\n")
 
 
 def main():
@@ -210,9 +224,9 @@ def main():
         ratings_dict = votes.set_index("tconst").to_dict("index")
         logger.info(f"Indexed {len(ratings_dict):,} ratings")
 
-        # Episodes: grouped by parentTconst for O(1) show lookup
-        episodes_by_parent = episodes.groupby("parentTconst")
-        logger.info(f"Grouped episodes by {episodes_by_parent.ngroups:,} parent shows")
+        # Episodes: dict of DataFrames by parentTconst for O(1) lookup and pickling
+        episodes_by_parent = {name: group for name, group in episodes.groupby("parentTconst")}
+        logger.info(f"Indexed episodes for {len(episodes_by_parent):,} parent shows")
 
     if args.shows:
         # Generate data for specific shows only
@@ -240,13 +254,21 @@ def main():
             show_ids = parent_votes["tconst"].tolist()
             progress_interval = max(1, num_shows // 5)  # Log ~5 times during run
             gen_start = time.time()
-            for idx, parent_id in enumerate(show_ids):
-                gen_season_ratings(parent_id, ratings_dict, episodes_by_parent)
-                if (idx + 1) % progress_interval == 0:
-                    elapsed = time.time() - gen_start
-                    rate = (idx + 1) / elapsed if elapsed > 0 else 0
-                    remaining = (num_shows - idx - 1) / rate if rate > 0 else 0
-                    logger.info(f"Progress: {idx + 1}/{num_shows} shows ({elapsed:.1f}s elapsed, ~{remaining:.1f}s remaining)")
+
+            num_workers = os.cpu_count() or 4
+            logger.info(f"Using {num_workers} parallel workers")
+
+            # Use 'fork' context to share data via copy-on-write (avoids pickling 230k DataFrames)
+            ctx = get_context('fork')
+            _init_worker(ratings_dict, episodes_by_parent)  # Set globals before forking
+
+            with ctx.Pool(num_workers) as pool:
+                for idx, _ in enumerate(pool.imap_unordered(_process_show, show_ids, chunksize=100)):
+                    if (idx + 1) % progress_interval == 0:
+                        elapsed = time.time() - gen_start
+                        rate = (idx + 1) / elapsed if elapsed > 0 else 0
+                        remaining = (num_shows - idx - 1) / rate if rate > 0 else 0
+                        logger.info(f"Progress: {idx + 1}/{num_shows} shows ({elapsed:.1f}s elapsed, ~{remaining:.1f}s remaining)")
 
         # Success indicator
         with open("done", "w") as f:
