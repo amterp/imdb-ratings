@@ -6,6 +6,7 @@ export interface ShowMetadata {
 export interface Episode {
   episode: number;
   rating: number;
+  votes: number | null;
   id: string;
 }
 

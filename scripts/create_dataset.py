@@ -51,14 +51,15 @@ def gen_season_ratings(parent_id, ratings, episodes):
             episode_number = idx + 1
 
             # get the ratings for the episode
-            episode_rating = ratings.loc[ratings["tconst"] == episode, "averageRating"]
+            episode_data = ratings.loc[ratings["tconst"] == episode]
 
-            if episode_rating.empty:
+            if episode_data.empty:
                 continue
-            else:
-                episode_rating = episode_rating.iloc[0]
 
-            data = {"episode": episode_number, "rating": episode_rating, "id": episode}
+            episode_rating = episode_data["averageRating"].iloc[0]
+            episode_votes = int(episode_data["numVotes"].iloc[0]) if not pd.isna(episode_data["numVotes"].iloc[0]) else None
+
+            data = {"episode": episode_number, "rating": episode_rating, "votes": episode_votes, "id": episode}
             season_ratings.append(data)
 
         show_ratings.append(season_ratings)
