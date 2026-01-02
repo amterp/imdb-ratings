@@ -14,6 +14,7 @@ import { RecentlyViewedDropdown } from './components/RecentlyViewedDropdown';
 import { StarIcon } from './components/StarIcon';
 import { HoverProvider } from './contexts/HoverContext';
 import { COMMIT_HASH, COMMIT_DATE, COMMIT_URL } from './utils/constants';
+import { formatVotes } from './utils/statsUtils';
 import type { ShowMetadata } from './types';
 
 function App() {
@@ -115,15 +116,28 @@ function App() {
 
         {/* Prominent Show Title with Star */}
         {showData && currentShow && (
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-white bg-clip-text text-transparent">
-              {currentShow.title}
-            </h2>
-            <StarIcon
-              isStarred={isStarred(currentShow.id)}
-              onClick={() => toggleStarred(currentShow)}
-              size="lg"
-            />
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-white bg-clip-text text-transparent">
+                  {currentShow.title}
+                </h2>
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4">
+                  <StarIcon
+                    isStarred={isStarred(currentShow.id)}
+                    onClick={() => toggleStarred(currentShow)}
+                    size="lg"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="h-6 mt-2">
+              {currentShow.rating != null && currentShow.votes != null && (
+                <span className="text-sm text-slate-400">
+                  Rated {currentShow.rating.toFixed(1)} · {formatVotes(currentShow.votes)} votes
+                </span>
+              )}
+            </div>
           </div>
         )}
 

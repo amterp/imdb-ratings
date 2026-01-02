@@ -1,6 +1,8 @@
 export interface ShowMetadata {
   id: string;
   title: string;
+  rating?: number;  // Show-level average rating (0-10)
+  votes?: number;   // Show-level vote count
 }
 
 export interface Episode {

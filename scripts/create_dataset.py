@@ -132,9 +132,15 @@ def download_all_datasets() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
 def gen_idtitle(parent_votes: pl.DataFrame, names_dict: dict[str, str], filename: str = "titleId.json") -> None:
     """Generate the title ID overview file using pre-indexed names dict."""
     title_ids = []
-    for show_id in parent_votes["tconst"]:
+    for row in parent_votes.iter_rows(named=True):
+        show_id = row["tconst"]
         title = names_dict.get(show_id, "Unknown")
-        title_ids.append({"id": show_id, "title": title})
+        title_ids.append({
+            "id": show_id,
+            "title": title,
+            "rating": row["averageRating"],
+            "votes": row["numVotes"],
+        })
 
     with open(f"{DATA_DIR}{filename}", "wb") as f:
         f.write(b"[\n")
