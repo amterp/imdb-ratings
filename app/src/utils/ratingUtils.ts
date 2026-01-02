@@ -4,17 +4,27 @@
  * The formula pulls ratings toward a baseline with decreasing strength as vote count increases.
  * This accounts for the uncertainty in low-vote ratings.
  *
- * Formula: adjustedRating = rawRating - (rawRating - baseline) × 2^(-log₁₀(votes + 1))
+ * Formula: adjustedRating = rawRating - (rawRating - baseline) × halvingFactor^(-log_logBase(votes + 1))
+ *
+ * Parameters tuned empirically (see scripts/confidence_tuning.ipynb):
+ *   - Baseline 7.0: slightly below average to penalize low-vote episodes
+ *   - Log base 8, halving factor 2.2: less aggressive than original (10, 2)
  *
  * Impact by vote count (for a 9.0 raw rating):
- *   10 votes → ~8.2 (50% uncertain)
- *   100 votes → ~8.6 (25% uncertain)
- *   1,000 votes → ~8.8 (12.5% uncertain)
- *   10,000 votes → ~8.9 (6% uncertain)
+ *   31 votes (median) → ~8.46 (31% pull to baseline)
+ *   100 votes → ~8.65 (18% pull)
+ *   1,000 votes → ~8.85 (8% pull)
+ *   10,000 votes → ~8.94 (3% pull)
  */
 
-/** Global IMDb average rating - used as the baseline for adjustment */
-export const IMDB_BASELINE_RATING = 7.4;
+/** Baseline rating - low-vote episodes get pulled toward this value */
+export const IMDB_BASELINE_RATING = 7.0;
+
+/** Log base for uncertainty decay - lower = faster confidence gain */
+const LOG_BASE = 8;
+
+/** Halving factor - how much uncertainty decreases per order of magnitude */
+const HALVING_FACTOR = 2.2;
 
 /**
  * Calculate confidence-adjusted rating using SteamDB-style formula.
@@ -35,10 +45,8 @@ export function calculateAdjustedRating(
   }
 
   // Calculate uncertainty factor: decreases logarithmically with vote count
-  // At 10 votes: ~0.5 (50% uncertain)
-  // At 100 votes: ~0.25 (25% uncertain)
-  // At 1000 votes: ~0.125 (12.5% uncertain)
-  const uncertainty = Math.pow(2, -Math.log10(votes + 1));
+  // Uses natural log divided by log of base to compute log_base(votes + 1)
+  const uncertainty = Math.pow(HALVING_FACTOR, -Math.log(votes + 1) / Math.log(LOG_BASE));
 
   // Pull rating toward baseline proportional to uncertainty
   const adjusted = rating - (rating - baseline) * uncertainty;
