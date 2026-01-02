@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import os
 import shutil
@@ -7,10 +6,11 @@ import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
-from multiprocessing import Pool, get_context
+from multiprocessing import get_context
 from pathlib import Path
 
-import pandas as pd
+import orjson
+import polars as pl
 
 CACHE_DIR = Path("/tmp/imdb-heatmap")
 
@@ -32,6 +32,7 @@ def clear_data_dir():
     for f in data_path.glob("*.json"):
         f.unlink()
 
+
 # Worker process globals (initialized via pool initializer)
 _ratings_dict = None
 _episodes_by_parent = None
@@ -48,6 +49,7 @@ def _process_show(parent_id):
     """Worker function to process a single show."""
     gen_season_ratings(parent_id, _ratings_dict, _episodes_by_parent)
     return parent_id
+
 
 # Configure logging with timestamps
 logging.basicConfig(
@@ -68,7 +70,7 @@ def timed_phase(name: str):
     logger.info(f"Completed: {name} in {elapsed:.1f}s")
 
 
-def download_dataset(name: str, url: str, usecols: list[str]) -> pd.DataFrame:
+def download_dataset(name: str, url: str, usecols: list[str]) -> pl.DataFrame:
     """Download a single dataset with timing, using cache if available."""
     filename = url.split("/")[-1]
     cache_path = CACHE_DIR / filename
@@ -76,7 +78,14 @@ def download_dataset(name: str, url: str, usecols: list[str]) -> pd.DataFrame:
 
     if cache_path.exists():
         logger.info(f"Loading {name} from cache...")
-        df = pd.read_csv(cache_path, header=0, usecols=usecols, compression="gzip", sep="\t")
+        df = pl.read_csv(
+            cache_path,
+            separator="\t",
+            columns=usecols,
+            null_values=["\\N"],
+            quote_char=None,  # IMDB TSV doesn't use standard CSV quoting
+            truncate_ragged_lines=True,
+        )
         elapsed = time.time() - start
         logger.info(f"Loaded {name} from cache in {elapsed:.1f}s ({len(df):,} rows)")
     else:
@@ -85,14 +94,21 @@ def download_dataset(name: str, url: str, usecols: list[str]) -> pd.DataFrame:
         with urllib.request.urlopen(url) as response:
             data = response.read()
         cache_path.write_bytes(data)
-        df = pd.read_csv(cache_path, header=0, usecols=usecols, compression="gzip", sep="\t")
+        df = pl.read_csv(
+            cache_path,
+            separator="\t",
+            columns=usecols,
+            null_values=["\\N"],
+            quote_char=None,  # IMDB TSV doesn't use standard CSV quoting
+            truncate_ragged_lines=True,
+        )
         elapsed = time.time() - start
         logger.info(f"Downloaded {name} in {elapsed:.1f}s ({len(df):,} rows)")
 
     return df
 
 
-def download_all_datasets() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def download_all_datasets() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """Download all datasets with conservative parallelism (2 workers)."""
     datasets_config = [
         ("names", NAMES_URL, ["tconst", "primaryTitle"]),
@@ -113,104 +129,142 @@ def download_all_datasets() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return results["names"], results["episodes"], results["votes"]
 
 
-def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str], filename: str = "titleId.json") -> None:
+def gen_idtitle(parent_votes: pl.DataFrame, names_dict: dict[str, str], filename: str = "titleId.json") -> None:
     """Generate the title ID overview file using pre-indexed names dict."""
     title_ids = []
     for show_id in parent_votes["tconst"]:
         title = names_dict.get(show_id, "Unknown")
         title_ids.append({"id": show_id, "title": title})
 
-    with open(f"{DATA_DIR}{filename}", "w") as f:
-        f.write("[\n")
+    with open(f"{DATA_DIR}{filename}", "wb") as f:
+        f.write(b"[\n")
         for idx, entry in enumerate(title_ids):
-            entry_json = json.dumps(entry, separators=(',', ':'))
+            entry_json = orjson.dumps(entry)
             if idx == len(title_ids) - 1:
-                f.write(f"{entry_json}\n")
+                f.write(entry_json + b"\n")
             else:
-                f.write(f"{entry_json},\n")
-        f.write("]\n")
+                f.write(entry_json + b",\n")
+        f.write(b"]\n")
 
     logger.info(f"Generated {filename} with {len(title_ids)} shows")
 
 
 def gen_season_ratings(
     parent_id: str,
-    ratings_dict: dict[str, dict],
-    episodes_by_parent: dict[str, pd.DataFrame]
+    ratings_dict: dict[str, tuple[float, int]],
+    episodes_by_parent: dict[str, list[tuple[str, int, int]]]
 ) -> None:
     """Generate ratings for a single show using pre-indexed lookups."""
     show_ratings = []
 
-    # O(1) lookup for episodes of this show
+    # O(1) lookup for episodes of this show (already filtered tuples)
     show_episodes = episodes_by_parent.get(parent_id)
-    if show_episodes is None:
-        # No episodes found for this show
-        with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-            f.write("[]\n")
+    if not show_episodes:
+        with open(f"{DATA_DIR}{parent_id}.json", "wb") as f:
+            f.write(b"[]\n")
         return
 
-    # Filter and sort
-    show_episodes = show_episodes[
-        (show_episodes["seasonNumber"] != "\\N") &
-        (show_episodes["episodeNumber"] != "\\N")
-    ].copy()
+    # show_episodes is already sorted list of (tconst, season, episode) tuples
+    # Group by season
+    seasons: dict[int, list[tuple[str, int]]] = {}
+    for tconst, season, episode in show_episodes:
+        if season not in seasons:
+            seasons[season] = []
+        seasons[season].append((tconst, episode))
 
-    if show_episodes.empty:
-        with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
-            f.write("[]\n")
-        return
-
-    show_episodes["seasonNumber"] = show_episodes["seasonNumber"].astype(int)
-    show_episodes["episodeNumber"] = show_episodes["episodeNumber"].astype(int)
-    show_episodes = show_episodes.sort_values(by=["seasonNumber", "episodeNumber"])
-
-    # Process each season
-    for season in show_episodes["seasonNumber"].unique():
-        season_episodes = show_episodes[show_episodes["seasonNumber"] == season]
-        # Filter to valid episode numbers (IMDb sometimes has episode 0 for specials)
-        season_episodes = season_episodes[season_episodes["episodeNumber"] > 0]
-
-        if season_episodes.empty:
+    # Process each season in order
+    for season in sorted(seasons.keys()):
+        season_eps = seasons[season]
+        if not season_eps:
             continue
 
-        max_ep = season_episodes["episodeNumber"].max()
-
-        # Initialize with None for all episode slots (episode number = index + 1)
+        max_ep = max(ep for _, ep in season_eps)
         season_data = [None] * max_ep
 
-        for row in season_episodes.itertuples():
-            episode_id = row.tconst
-            episode_num = row.episodeNumber
-
+        for episode_id, episode_num in season_eps:
             # O(1) lookup for ratings
             episode_data = ratings_dict.get(episode_id)
             if episode_data is None:
                 continue
 
-            episode_rating = episode_data["averageRating"]
-            votes = episode_data["numVotes"]
-            episode_votes = int(votes) if pd.notna(votes) else None
-
+            rating, votes = episode_data
             # Format: [rating, votes, id] - episode number is implicit (index + 1)
-            season_data[episode_num - 1] = [episode_rating, episode_votes, episode_id]
+            season_data[episode_num - 1] = [rating, votes, episode_id]
 
         show_ratings.append(season_data)
 
-    # Write JSON in one go (preserving original formatting)
-    with open(f"{DATA_DIR}{parent_id}.json", "w") as f:
+    # Write JSON using orjson for speed
+    with open(f"{DATA_DIR}{parent_id}.json", "wb") as f:
         if not show_ratings:
-            f.write("[]\n")
+            f.write(b"[]\n")
         else:
-            lines = ["[", "["]
+            # Build output maintaining the expected format with newlines between episodes
+            parts = [b"[", b"["]
             for season_idx, season in enumerate(show_ratings):
                 is_last_season = season_idx == len(show_ratings) - 1
                 for ep_idx, episode in enumerate(season):
-                    ep_json = json.dumps(episode, separators=(',', ':'))
+                    ep_json = orjson.dumps(episode)
                     is_last_ep = ep_idx == len(season) - 1
-                    lines.append(ep_json if is_last_ep else f"{ep_json},")
-                lines.append("]" if is_last_season else "],\n[")
-            lines.append("]")
-            f.write("\n".join(lines) + "\n")
+                    parts.append(ep_json if is_last_ep else ep_json + b",")
+                parts.append(b"]" if is_last_season else b"],\n[")
+            parts.append(b"]")
+            f.write(b"\n".join(parts) + b"\n")
+
+
+def build_indexes(names: pl.DataFrame, episodes: pl.DataFrame, votes: pl.DataFrame):
+    """Build all indexes in parallel using ThreadPoolExecutor."""
+
+    def build_names_dict():
+        # Names: tconst -> primaryTitle
+        return dict(zip(
+            names["tconst"].to_list(),
+            names["primaryTitle"].to_list()
+        ))
+
+    def build_ratings_dict():
+        # Ratings: tconst -> (averageRating, numVotes)
+        return dict(zip(
+            votes["tconst"].to_list(),
+            zip(votes["averageRating"].to_list(), votes["numVotes"].to_list())
+        ))
+
+    def build_episodes_by_parent():
+        # Filter out null seasons/episodes and episode 0, convert to int, sort
+        valid_episodes = episodes.filter(
+            (pl.col("seasonNumber").is_not_null()) &
+            (pl.col("episodeNumber").is_not_null())
+        ).with_columns([
+            pl.col("seasonNumber").cast(pl.Int32),
+            pl.col("episodeNumber").cast(pl.Int32),
+        ]).filter(
+            pl.col("episodeNumber") > 0
+        ).sort(["parentTconst", "seasonNumber", "episodeNumber"])
+
+        # Group into dict of lists of tuples - use iter_rows() for speed (no dict per row)
+        result: dict[str, list[tuple[str, int, int]]] = {}
+        # Column order: tconst, parentTconst, seasonNumber, episodeNumber
+        for tconst, parent, season, episode in valid_episodes.iter_rows():
+            if parent not in result:
+                result[parent] = []
+            result[parent].append((tconst, season, episode))
+        return result
+
+    # Run all three index builds in parallel
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        names_future = executor.submit(build_names_dict)
+        ratings_future = executor.submit(build_ratings_dict)
+        episodes_future = executor.submit(build_episodes_by_parent)
+
+        names_dict = names_future.result()
+        logger.info(f"Indexed {len(names_dict):,} titles")
+
+        ratings_dict = ratings_future.result()
+        logger.info(f"Indexed {len(ratings_dict):,} ratings")
+
+        episodes_by_parent = episodes_future.result()
+        logger.info(f"Indexed episodes for {len(episodes_by_parent):,} parent shows")
+
+    return names_dict, ratings_dict, episodes_by_parent
 
 
 def main():
@@ -236,19 +290,9 @@ def main():
     with timed_phase("Download datasets"):
         names, episodes, votes = download_all_datasets()
 
-    # Build indexes for O(1) lookups
+    # Build indexes for O(1) lookups (parallelized)
     with timed_phase("Build indexes"):
-        # Names: tconst -> primaryTitle
-        names_dict = names.set_index("tconst")["primaryTitle"].to_dict()
-        logger.info(f"Indexed {len(names_dict):,} titles")
-
-        # Ratings: tconst -> {averageRating, numVotes}
-        ratings_dict = votes.set_index("tconst").to_dict("index")
-        logger.info(f"Indexed {len(ratings_dict):,} ratings")
-
-        # Episodes: dict of DataFrames by parentTconst for O(1) lookup and pickling
-        episodes_by_parent = {name: group for name, group in episodes.groupby("parentTconst")}
-        logger.info(f"Indexed episodes for {len(episodes_by_parent):,} parent shows")
+        names_dict, ratings_dict, episodes_by_parent = build_indexes(names, episodes, votes)
 
     if args.shows:
         # Generate data for specific shows only
@@ -263,10 +307,9 @@ def main():
         # Full run: top N shows by votes
         num_shows = args.num_shows
         with timed_phase("Identify top shows"):
-            parent_shows = set(episodes["parentTconst"].unique())
-            parent_votes = votes[votes["tconst"].isin(parent_shows)]
-            parent_votes = parent_votes.sort_values(by=["numVotes"], ascending=False)
-            parent_votes = parent_votes.head(num_shows)
+            parent_shows = set(episodes["parentTconst"].to_list())
+            parent_votes = votes.filter(pl.col("tconst").is_in(parent_shows))
+            parent_votes = parent_votes.sort("numVotes", descending=True).head(num_shows)
             logger.info(f"Selected top {len(parent_votes)} shows by vote count")
 
         with timed_phase("Clear existing data"):
@@ -281,14 +324,14 @@ def main():
             gen_idtitle(lite_votes, names_dict, "titleId-lite.json")
 
         with timed_phase(f"Generate data for {num_shows} shows"):
-            show_ids = parent_votes["tconst"].tolist()
+            show_ids = parent_votes["tconst"].to_list()
             progress_interval = max(1, num_shows // 5)  # Log ~5 times during run
             gen_start = time.time()
 
             num_workers = os.cpu_count() or 4
             logger.info(f"Using {num_workers} parallel workers")
 
-            # Use 'fork' context to share data via copy-on-write (avoids pickling 230k DataFrames)
+            # Use 'fork' context to share data via copy-on-write
             ctx = get_context('fork')
             _init_worker(ratings_dict, episodes_by_parent)  # Set globals before forking
 
