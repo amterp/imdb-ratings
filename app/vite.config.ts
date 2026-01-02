@@ -17,4 +17,8 @@ export default defineConfig({
     },
     preserveSymlinks: false,
   },
+  define: {
+    __COMMIT_HASH__: JSON.stringify(process.env.VITE_COMMIT_HASH || 'dev'),
+    __COMMIT_DATE__: JSON.stringify(process.env.VITE_COMMIT_DATE || new Date().toISOString().slice(0, 10)),
+  },
 })

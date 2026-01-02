@@ -37,10 +37,19 @@ jobs:
           cd app
           npm ci
 
+      - name: Get commit info
+        id: commit
+        run: |
+          echo "hash=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(git log -1 --format=%cs)" >> $GITHUB_OUTPUT
+
       - name: Build
         run: |
           cd app
           npm run build
+        env:
+          VITE_COMMIT_HASH: ${{ steps.commit.outputs.hash }}
+          VITE_COMMIT_DATE: ${{ steps.commit.outputs.date }}
 
       - name: Copy data folder to build output
         run: |

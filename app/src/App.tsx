@@ -8,6 +8,7 @@ import { StatusIndicator } from './components/StatusIndicator';
 import { EpisodeInfoPanel } from './components/EpisodeInfoPanel';
 import { CatalogTierToggle } from './components/CatalogTierToggle';
 import { HoverProvider } from './contexts/HoverContext';
+import { COMMIT_HASH, COMMIT_DATE, COMMIT_URL } from './utils/constants';
 import type { ShowMetadata } from './types';
 
 function App() {
@@ -124,7 +125,12 @@ function App() {
               IMDb
             </a>
             {' · '}
-            Updated daily
+            Updated daily · Version: {COMMIT_DATE} (<a
+              href={COMMIT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-smooth"
+            >{COMMIT_HASH}</a>)
             {' · '}
             <a
               href="https://github.com/amterp/imdb-ratings"
