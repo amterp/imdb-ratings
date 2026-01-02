@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useHover } from '@/contexts/HoverContext';
+import { useRatingMode } from '@/contexts/RatingModeContext';
 import { formatVotes } from '@/utils/statsUtils';
+import { calculateAdjustedRating } from '@/utils/ratingUtils';
 import type { ShowData } from '@/types';
 
 interface EpisodeInfoPanelProps {
@@ -9,6 +11,7 @@ interface EpisodeInfoPanelProps {
 
 export function EpisodeInfoPanel({ showData }: EpisodeInfoPanelProps) {
   const { hoveredEpisode } = useHover();
+  const { isAdjusted } = useRatingMode();
 
   const episodeInfo = useMemo(() => {
     if (!showData || hoveredEpisode.seasonNumber === null || hoveredEpisode.episodeNumber === null) {
@@ -21,10 +24,13 @@ export function EpisodeInfoPanel({ showData }: EpisodeInfoPanelProps) {
     const episode = season.find((ep) => ep.episode === hoveredEpisode.episodeNumber);
     if (!episode || episode.rating === null) return null;
 
+    const adjustedRating = calculateAdjustedRating(episode.rating, episode.votes);
+
     return {
       season: hoveredEpisode.seasonNumber,
       episode: hoveredEpisode.episodeNumber,
       rating: episode.rating,
+      adjustedRating,
       votes: episode.votes,
     };
   }, [showData, hoveredEpisode]);
@@ -43,8 +49,18 @@ export function EpisodeInfoPanel({ showData }: EpisodeInfoPanelProps) {
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-400">Rating</span>
-                <span className="font-bold">{episodeInfo.rating.toFixed(1)}</span>
+                <span className="font-bold">
+                  {isAdjusted
+                    ? (episodeInfo.adjustedRating?.toFixed(1) ?? '—')
+                    : episodeInfo.rating.toFixed(1)}
+                </span>
               </div>
+              {isAdjusted && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500">Raw</span>
+                  <span className="text-slate-400">{episodeInfo.rating.toFixed(1)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Votes</span>
                 <span className="font-semibold">{episodeInfo.votes !== null ? formatVotes(episodeInfo.votes) : '—'}</span>

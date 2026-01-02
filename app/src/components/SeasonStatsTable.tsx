@@ -5,10 +5,11 @@ import {
   calculateMean,
   calculateMedian,
   calculateStdDev,
-  calculateWeightedMean,
   calculateTotalVotes,
   formatVotes,
 } from '@/utils/statsUtils';
+import { useRatingMode } from '@/contexts/RatingModeContext';
+import { calculateAdjustedRating } from '@/utils/ratingUtils';
 
 interface SeasonStatsTableProps {
   showData: ShowData;
@@ -29,19 +30,25 @@ function getVotesColor(normalized: number): { backgroundColor: string; textColor
 }
 
 export function SeasonStatsTable({ showData }: SeasonStatsTableProps) {
+  const { isAdjusted } = useRatingMode();
+
   // Pre-calculate all season stats including vote totals
   const seasonStats = useMemo(() => {
     return showData.map((season) => {
-      const ratings = season.map((episode) => episode.rating);
+      // Get ratings based on mode - adjust them if in adjusted mode
+      const ratings = season.map((episode) =>
+        isAdjusted
+          ? calculateAdjustedRating(episode.rating, episode.votes)
+          : episode.rating
+      );
       return {
         mean: calculateMean(ratings),
-        weightedMean: calculateWeightedMean(season),
         median: calculateMedian(ratings),
         stddev: calculateStdDev(ratings),
         totalVotes: calculateTotalVotes(season),
       };
     });
-  }, [showData]);
+  }, [showData, isAdjusted]);
 
   // Find min/max votes for normalization
   const { minVotes, maxVotes } = useMemo(() => {
@@ -65,9 +72,6 @@ export function SeasonStatsTable({ showData }: SeasonStatsTableProps) {
           <td className="w-15 h-10 min-w-15 min-h-10 text-center bg-slate-700 border border-slate-600 font-bold text-xs">
             Mean
           </td>
-          <td className="w-15 h-10 min-w-15 min-h-10 text-center bg-slate-700 border border-slate-600 font-bold text-xs whitespace-nowrap">
-            W. Mean
-          </td>
           <td className="w-15 h-10 min-w-15 min-h-10 text-center bg-slate-700 border border-slate-600 font-bold text-xs">
             Median
           </td>
@@ -87,7 +91,6 @@ export function SeasonStatsTable({ showData }: SeasonStatsTableProps) {
           return (
             <tr key={seasonIndex}>
               <SeasonStatsCell value={stats.mean} />
-              <SeasonStatsCell value={stats.weightedMean} />
               <SeasonStatsCell value={stats.median} />
               <SeasonStatsCell value={stats.stddev} />
               <td

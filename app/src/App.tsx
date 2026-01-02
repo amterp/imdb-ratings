@@ -13,6 +13,8 @@ import { StarredShowsDropdown } from './components/StarredShowsDropdown';
 import { RecentlyViewedDropdown } from './components/RecentlyViewedDropdown';
 import { StarIcon } from './components/StarIcon';
 import { HoverProvider } from './contexts/HoverContext';
+import { useRatingMode } from './contexts/RatingModeContext';
+import { RatingModeToggle } from './components/RatingModeToggle';
 import { COMMIT_HASH, COMMIT_DATE, COMMIT_URL } from './utils/constants';
 import { formatVotes } from './utils/statsUtils';
 import type { ShowMetadata } from './types';
@@ -23,6 +25,7 @@ function App() {
   const { recentlyViewed, addRecentlyViewed } = useRecentlyViewed();
   const { starredShows, isStarred, toggleStarred, removeStarred, reorderStarred } =
     useStarredShows();
+  const { ratingMode, toggleRatingMode } = useRatingMode();
 
   const {
     data: showCatalog,
@@ -72,13 +75,16 @@ function App() {
                   Visualize TV show ratings at a glance
                 </p>
               </div>
-              {/* Header controls: Catalog on top, Starred + Recent below */}
+              {/* Header controls: Catalog + Ratings on top, Starred + Recent below */}
               <div className="flex flex-col gap-2">
-                <CatalogTierToggle
-                  tier={tier}
-                  onToggle={toggleTier}
-                  isLoading={isCatalogLoading}
-                />
+                <div className="flex gap-2">
+                  <CatalogTierToggle
+                    tier={tier}
+                    onToggle={toggleTier}
+                    isLoading={isCatalogLoading}
+                  />
+                  <RatingModeToggle mode={ratingMode} onToggle={toggleRatingMode} />
+                </div>
                 <div className="flex gap-2 w-full">
                   <StarredShowsDropdown
                     starredShows={starredShows}

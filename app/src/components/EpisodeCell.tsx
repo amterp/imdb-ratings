@@ -2,6 +2,8 @@ import type { Episode } from '@/types';
 import { getColorForRating } from '@/utils/colorUtils';
 import { IMDB_URL } from '@/utils/constants';
 import { useHover } from '@/contexts/HoverContext';
+import { useRatingMode } from '@/contexts/RatingModeContext';
+import { calculateAdjustedRating } from '@/utils/ratingUtils';
 
 interface EpisodeCellProps {
   episode: Episode;
@@ -10,6 +12,7 @@ interface EpisodeCellProps {
 
 export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
   const { hoveredEpisode, setHoveredEpisode, clearHover } = useHover();
+  const { isAdjusted } = useRatingMode();
 
   // Missing episode (no IMDb data) - early return before hooks that depend on rating
   if (episode.rating === null) {
@@ -27,8 +30,12 @@ export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
     return <td className="w-10 h-10 min-w-10 min-h-10 text-center border border-slate-700" />;
   }
 
-  // At this point, rating is guaranteed to be a positive number
-  const { backgroundColor, textColor } = getColorForRating(episode.rating);
+  // Calculate display rating based on mode
+  const displayRating = isAdjusted
+    ? calculateAdjustedRating(episode.rating, episode.votes) ?? episode.rating
+    : episode.rating;
+
+  const { backgroundColor, textColor } = getColorForRating(displayRating);
 
   const episodeUrl = `${IMDB_URL}${episode.id}/`;
 
@@ -62,7 +69,7 @@ export function EpisodeCell({ episode, seasonNumber }: EpisodeCellProps) {
         className="flex items-center justify-center w-full h-full text-sm font-semibold no-underline hover:underline"
         style={{ color: textColor }}
       >
-        {episode.rating.toFixed(1)}
+        {displayRating.toFixed(1)}
       </a>
     </td>
   );

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
-import type { ShowData } from '@/types';
+import type { ShowData, Episode } from '@/types';
 import { useHover } from '@/contexts/HoverContext';
+import { useRatingMode } from '@/contexts/RatingModeContext';
+import { calculateAdjustedRating } from '@/utils/ratingUtils';
 import type { PlotMouseEvent } from 'plotly.js';
 
 interface RatingsLineGraphProps {
@@ -22,8 +24,18 @@ const SEASON_COLORS = [
   '#84cc16', // lime
 ];
 
+/** Get display rating - adjusted if in adjusted mode, otherwise raw */
+function getDisplayRating(episode: Episode, isAdjusted: boolean): number | null {
+  if (episode.rating === null || episode.rating <= 0) return null;
+  if (isAdjusted) {
+    return calculateAdjustedRating(episode.rating, episode.votes) ?? episode.rating;
+  }
+  return episode.rating;
+}
+
 export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
   const { setHoveredEpisode, clearHover } = useHover();
+  const { isAdjusted } = useRatingMode();
 
   // Calculate dynamic y-axis range
   const yAxisRange = useMemo(() => {
@@ -32,9 +44,10 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
 
     showData.forEach((season) => {
       season.forEach((episode) => {
-        if (episode.rating !== null && episode.rating > 0) {
-          minRating = Math.min(minRating, episode.rating);
-          maxRating = Math.max(maxRating, episode.rating);
+        const displayRating = getDisplayRating(episode, isAdjusted);
+        if (displayRating !== null && displayRating > 0) {
+          minRating = Math.min(minRating, displayRating);
+          maxRating = Math.max(maxRating, displayRating);
         }
       });
     });
@@ -42,7 +55,7 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
     // Add padding (0.5 on each side)
     const padding = 0.5;
     return [Math.max(0, minRating - padding), Math.min(10, maxRating + padding)];
-  }, [showData]);
+  }, [showData, isAdjusted]);
 
   // Generate traces and shapes
   const { traces, shapes } = useMemo(() => {
@@ -54,15 +67,19 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
       const color = SEASON_COLORS[seasonIndex % SEASON_COLORS.length];
 
       // Filter to only episodes with valid ratings (not null, > 0)
-      const validEpisodes = season.filter((ep) => ep.rating !== null && ep.rating > 0);
+      const validEpisodes = season.filter((ep) => {
+        const displayRating = getDisplayRating(ep, isAdjusted);
+        return displayRating !== null && displayRating > 0;
+      });
 
       const validX = validEpisodes.map((ep) => ep.episode);
-      const validY = validEpisodes.map((ep) => ep.rating as number);  // Safe cast since we filtered
+      const validY = validEpisodes.map((ep) => getDisplayRating(ep, isAdjusted) as number);
 
       // Create hover text
-      const hoverText = validEpisodes.map(
-        (ep) => `Season ${seasonNumber}<br>Episode ${ep.episode}<br>Rating: ${(ep.rating as number).toFixed(2)}`
-      );
+      const hoverText = validEpisodes.map((ep) => {
+        const displayRating = getDisplayRating(ep, isAdjusted) as number;
+        return `Season ${seasonNumber}<br>Episode ${ep.episode}<br>Rating: ${displayRating.toFixed(2)}`;
+      });
 
       // Use consistent marker sizes
       const markerSizes = validEpisodes.map(() => 8);
@@ -129,7 +146,7 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
     });
 
     return { traces, shapes };
-  }, [showData]);
+  }, [showData, isAdjusted]);
 
   const handleHover = (event: Readonly<PlotMouseEvent>) => {
     if (event.points && event.points.length > 0) {
@@ -148,6 +165,7 @@ export function RatingsLineGraph({ showData }: RatingsLineGraphProps) {
   return (
     <div className="flex-grow min-w-0 overflow-hidden">
       <Plot
+        key={isAdjusted ? 'adjusted' : 'raw'}
         data={traces}
         layout={{
           autosize: true,
