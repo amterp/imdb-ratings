@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 12 * * *'  # 6 AM Chicago (CST), 7 AM during CDT
 jobs:
 
   create:
