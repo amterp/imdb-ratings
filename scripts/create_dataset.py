@@ -19,7 +19,11 @@ EPISODES_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
 NAMES_URL = "https://datasets.imdbws.com/title.basics.tsv.gz"
 
 DATA_DIR = "data/"
-NUM_SHOWS = 2500
+
+# Tier configurations
+LITE_NUM_SHOWS = 5000
+EXPANDED_NUM_SHOWS = 25000
+DEFAULT_NUM_SHOWS = EXPANDED_NUM_SHOWS  # Generate all expanded shows by default
 
 
 def clear_data_dir():
@@ -109,14 +113,14 @@ def download_all_datasets() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return results["names"], results["episodes"], results["votes"]
 
 
-def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str]) -> None:
+def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str], filename: str = "titleId.json") -> None:
     """Generate the title ID overview file using pre-indexed names dict."""
     title_ids = []
     for show_id in parent_votes["tconst"]:
         title = names_dict.get(show_id, "Unknown")
         title_ids.append({"id": show_id, "title": title})
 
-    with open(f"{DATA_DIR}titleId.json", "w") as f:
+    with open(f"{DATA_DIR}{filename}", "w") as f:
         f.write("[\n")
         for idx, entry in enumerate(title_ids):
             entry_json = json.dumps(entry, separators=(',', ':'))
@@ -126,7 +130,7 @@ def gen_idtitle(parent_votes: pd.DataFrame, names_dict: dict[str, str]) -> None:
                 f.write(f"{entry_json},\n")
         f.write("]\n")
 
-    logger.info(f"Generated titleId.json with {len(title_ids)} shows")
+    logger.info(f"Generated {filename} with {len(title_ids)} shows")
 
 
 def gen_season_ratings(
@@ -213,8 +217,8 @@ def main():
     parser = argparse.ArgumentParser(description="Generate IMDb ratings data files")
     parser.add_argument("--shows", nargs="+", metavar="ID",
                         help="Generate data for specific show IDs only (e.g., tt0903747 tt0944947)")
-    parser.add_argument("-n", "--num-shows", type=int, default=NUM_SHOWS, metavar="N",
-                        help=f"Number of top shows to process (default: {NUM_SHOWS})")
+    parser.add_argument("-n", "--num-shows", type=int, default=DEFAULT_NUM_SHOWS, metavar="N",
+                        help=f"Number of top shows to process (default: {DEFAULT_NUM_SHOWS})")
     parser.add_argument("--clear-cache", action="store_true",
                         help="Clear cached IMDb data files before running")
     args = parser.parse_args()
@@ -268,8 +272,13 @@ def main():
         with timed_phase("Clear existing data"):
             clear_data_dir()
 
-        with timed_phase("Generate titleId.json"):
-            gen_idtitle(parent_votes, names_dict)
+        with timed_phase("Generate catalog files"):
+            # Generate expanded catalog (all shows being processed)
+            gen_idtitle(parent_votes, names_dict, "titleId-expanded.json")
+
+            # Generate lite catalog (top LITE_NUM_SHOWS)
+            lite_votes = parent_votes.head(LITE_NUM_SHOWS)
+            gen_idtitle(lite_votes, names_dict, "titleId-lite.json")
 
         with timed_phase(f"Generate data for {num_shows} shows"):
             show_ids = parent_votes["tconst"].tolist()

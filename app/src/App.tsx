@@ -1,20 +1,23 @@
 import { useShowCatalog } from './hooks/useShowCatalog';
 import { useShowData } from './hooks/useShowData';
 import { useUrlState } from './hooks/useUrlState';
+import { useCatalogTier } from './hooks/useCatalogTier';
 import { SearchBar } from './components/SearchBar';
 import { HeatmapGrid } from './components/HeatmapGrid';
 import { StatusIndicator } from './components/StatusIndicator';
 import { EpisodeInfoPanel } from './components/EpisodeInfoPanel';
+import { CatalogTierToggle } from './components/CatalogTierToggle';
 import { HoverProvider } from './contexts/HoverContext';
 import type { ShowMetadata } from './types';
 
 function App() {
   const { showId, setShowId } = useUrlState();
+  const { tier, toggleTier } = useCatalogTier();
   const {
     data: showCatalog,
     isLoading: isCatalogLoading,
     error: catalogError,
-  } = useShowCatalog();
+  } = useShowCatalog(tier);
 
   const {
     data: showData,
@@ -48,12 +51,21 @@ function App() {
         {/* Header */}
         <header className="max-w-7xl mx-auto mb-8">
           <div className="glass rounded-2xl p-8 mb-6">
-            <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              IMDb Series Heatmap
-            </h1>
-            <p className="text-center text-gray-400 text-sm">
-              Visualize TV show ratings at a glance
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                  IMDb Series Heatmap
+                </h1>
+                <p className="text-gray-400 text-sm">
+                  Visualize TV show ratings at a glance
+                </p>
+              </div>
+              <CatalogTierToggle
+                tier={tier}
+                onToggle={toggleTier}
+                isLoading={isCatalogLoading}
+              />
+            </div>
           </div>
 
           <SearchBar

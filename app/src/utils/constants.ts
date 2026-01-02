@@ -1,5 +1,6 @@
 export const SERIES_URL = `${import.meta.env.BASE_URL}data/`;
-export const TITLE_ID_URL = `${import.meta.env.BASE_URL}data/titleId.json`;
+export const TITLE_ID_LITE_URL = `${import.meta.env.BASE_URL}data/titleId-lite.json`;
+export const TITLE_ID_EXPANDED_URL = `${import.meta.env.BASE_URL}data/titleId-expanded.json`;
 export const IMDB_URL = 'https://www.imdb.com/title/';
 
 // Color thresholds

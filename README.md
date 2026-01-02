@@ -42,15 +42,74 @@ Then open http://localhost:5173 (or whichever port Vite assigns) in your browser
 
 ## How it Works
 
-**Data Generation:**
+This is a **static site** with no backend — just pre-generated JSON files served from GitHub Pages.
 
-The Python script (`scripts/create_dataset.py`) downloads IMDb data and saves the top 2500 shows as one `{title, id}` JSON file (`data/titleId.json`). It then generates individual JSON files for each show ID, containing ratings for every episode across all seasons.
+```
+┌───────────────────────────────────────────────────────┐
+│               GitHub Pages (Static Host)              │
+│                                                       │
+│   /index.html                ← React app              │
+│   /data/titleId-lite.json    ← Catalog (5K shows)     │
+│   /data/titleId-expanded.json← Catalog (25K shows)    │
+│   /data/tt0903747.json       ← Breaking Bad data      │
+│   /data/tt0944947.json       ← Game of Thrones data   │
+│   /data/...                  ← 25,000 show files      │
+└───────────────────────────────────────────────────────┘
+```
 
-The scripts run every 24h via a cron job through GitHub Actions. The generated JSON files are automatically pushed to the repo.
+### Data Generation
 
-**Frontend:**
+A Python script (`scripts/create_dataset.py`) runs daily via GitHub Actions:
 
-The React application loads the show catalog from `data/titleId.json`, provides an autocomplete search interface, and dynamically loads episode data for the selected show. Episode ratings are displayed as a color-coded heatmap using HSL color gradients (red → orange → yellow → green).
+1. **Downloads** public IMDb dataset files (ratings, episodes, titles)
+2. **Ranks** all TV shows by vote count
+3. **Generates catalogs** — two JSON files listing `{id, title}` pairs:
+   - `titleId-lite.json` — top 5,000 shows
+   - `titleId-expanded.json` — top 25,000 shows
+4. **Generates show files** — one JSON file per show with episode data
+
+Episode data uses a compact array format to minimize file size:
+```json
+[
+  [[8.5, 12345, "tt1234567"], [8.8, 11000, "tt1234568"], null],
+  [[9.0, 15000, "tt1234569"], [8.7, 14000, "tt1234570"]]
+]
+```
+Each episode is `[rating, votes, episodeId]` or `null` for missing episodes. Season/episode numbers are implicit from array position.
+
+### Frontend Architecture
+
+```
+User loads site
+      │
+      ▼
+┌─────────────────────┐
+│  Fetch catalog      │ ← ~70KB gzipped (lite) or ~350KB (expanded)
+│  (cached forever)   │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  User searches      │ ← Client-side array filtering, instant
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Fetch show data    │ ← 1-5KB typical, ~90KB max (The Simpsons)
+│  (cached 24h)       │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Render heatmap     │ ← HSL color gradient (red → green)
+└─────────────────────┘
+```
+
+**Caching**: TanStack Query manages data fetching. The catalog is cached indefinitely in memory (it doesn't change during a session). Show data is cached for 24 hours.
+
+**Catalog Tiers**: Users can toggle between Lite and Expanded via a header button. The preference persists in localStorage. Both catalogs are cached separately — once you've loaded both, switching is instant.
+
+**Search**: Pure client-side filtering on the in-memory catalog array. No server round-trips, no debouncing needed — it's just JavaScript filtering ~5K-25K objects, which is effectively instant.
 
 ## Known Issues
 
