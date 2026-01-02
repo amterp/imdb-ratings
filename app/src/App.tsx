@@ -2,11 +2,16 @@ import { useShowCatalog } from './hooks/useShowCatalog';
 import { useShowData } from './hooks/useShowData';
 import { useUrlState } from './hooks/useUrlState';
 import { useCatalogTier } from './hooks/useCatalogTier';
+import { useRecentlyViewed } from './hooks/useRecentlyViewed';
+import { useStarredShows } from './hooks/useStarredShows';
 import { SearchBar } from './components/SearchBar';
 import { HeatmapGrid } from './components/HeatmapGrid';
 import { StatusIndicator } from './components/StatusIndicator';
 import { EpisodeInfoPanel } from './components/EpisodeInfoPanel';
 import { CatalogTierToggle } from './components/CatalogTierToggle';
+import { StarredShowsDropdown } from './components/StarredShowsDropdown';
+import { RecentlyViewedDropdown } from './components/RecentlyViewedDropdown';
+import { StarIcon } from './components/StarIcon';
 import { HoverProvider } from './contexts/HoverContext';
 import { COMMIT_HASH, COMMIT_DATE, COMMIT_URL } from './utils/constants';
 import type { ShowMetadata } from './types';
@@ -14,6 +19,10 @@ import type { ShowMetadata } from './types';
 function App() {
   const { showId, setShowId } = useUrlState();
   const { tier, toggleTier } = useCatalogTier();
+  const { recentlyViewed, addRecentlyViewed } = useRecentlyViewed();
+  const { starredShows, isStarred, toggleStarred, removeStarred, reorderStarred } =
+    useStarredShows();
+
   const {
     data: showCatalog,
     isLoading: isCatalogLoading,
@@ -31,6 +40,7 @@ function App() {
 
   const handleSelectShow = (show: ShowMetadata) => {
     setShowId(show.id, show.title);
+    addRecentlyViewed(show);
   };
 
   // Determine status for status indicator
@@ -51,7 +61,7 @@ function App() {
       <div className="min-h-screen py-8 px-4">
         {/* Header */}
         <header className="max-w-7xl mx-auto mb-8">
-          <div className="glass rounded-2xl p-8 mb-6">
+          <div className="glass rounded-2xl p-8 mb-6 relative z-20">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -61,11 +71,28 @@ function App() {
                   Visualize TV show ratings at a glance
                 </p>
               </div>
-              <CatalogTierToggle
-                tier={tier}
-                onToggle={toggleTier}
-                isLoading={isCatalogLoading}
-              />
+              {/* Header controls: Catalog on top, Starred + Recent below */}
+              <div className="flex flex-col gap-2">
+                <CatalogTierToggle
+                  tier={tier}
+                  onToggle={toggleTier}
+                  isLoading={isCatalogLoading}
+                />
+                <div className="flex gap-2 w-full">
+                  <StarredShowsDropdown
+                    starredShows={starredShows}
+                    onSelectShow={handleSelectShow}
+                    onRemoveStarred={removeStarred}
+                    onReorder={reorderStarred}
+                    className="flex-1"
+                  />
+                  <RecentlyViewedDropdown
+                    recentlyViewed={recentlyViewed}
+                    onSelectShow={handleSelectShow}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -86,12 +113,17 @@ function App() {
           />
         </header>
 
-        {/* Prominent Show Title */}
+        {/* Prominent Show Title with Star */}
         {showData && currentShow && (
-          <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-8">
             <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-white bg-clip-text text-transparent">
               {currentShow.title}
             </h2>
+            <StarIcon
+              isStarred={isStarred(currentShow.id)}
+              onClick={() => toggleStarred(currentShow)}
+              size="lg"
+            />
           </div>
         )}
 

@@ -23,7 +23,7 @@ export function SearchBar({ shows, onSelectShow, isLoading }: SearchBarProps) {
   }, [query, shows]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto relative z-10">
       <Combobox
         onChange={(show: ShowMetadata | null) => {
           if (show) {
