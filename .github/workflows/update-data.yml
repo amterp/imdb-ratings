@@ -6,6 +6,12 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 12 * * *'  # 6 AM Chicago (CST), 7 AM during CDT
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
 
   create:
