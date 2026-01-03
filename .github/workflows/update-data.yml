@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      pushed: ${{ steps.commit.outputs.pushed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -36,6 +38,7 @@ jobs:
           python scripts/create_dataset.py
           ls data
       - name: check if successful, then commit
+        id: commit
         run: |
           if [ -f done ]; then
             echo "generated dataset successfully"
@@ -44,6 +47,13 @@ jobs:
             git add -A data/*
             git commit -m "Update data"
             git push
+            echo "pushed=true" >> $GITHUB_OUTPUT
           else
             echo "failed to generate dataset"
+            echo "pushed=false" >> $GITHUB_OUTPUT
           fi
+
+  deploy:
+    needs: create
+    if: needs.create.outputs.pushed == 'true'
+    uses: ./.github/workflows/deploy.yml
