@@ -3,9 +3,10 @@
 Facilitates imdb-ratings development.
 ---
 args:
-    run r bool    # Run in dev.
-    data d int?   # Run the data script for this many top shows.
-    release bool  # Trigger a deploy to GitHub Pages.
+    run r bool         # Run in dev.
+    data d int?        # Run the data script for this many top shows.
+    release bool       # Trigger a deploy to GitHub Pages.
+    update_data bool   # Trigger the update-data workflow on GitHub.
 
     data range [0,]
 
@@ -18,3 +19,7 @@ if data:
 if release:
     $`gh workflow run deploy.yml`
     print_err("Triggered deploy workflow.")
+
+if update_data:
+    $`gh workflow run update-data.yml`
+    print_err("Triggered update-data workflow.")
