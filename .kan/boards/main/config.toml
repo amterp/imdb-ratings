@@ -6,7 +6,7 @@ default_column = "backlog"
 [[columns]]
   name = "undecided"
   color = "#a855f7"
-  card_ids = ["2RcNmu4Y", "2RcOMyCT"]
+  card_ids = ["2RcNmu4Y", "2RcOMyCT", "2Rpd00De"]
 
 [[columns]]
   name = "backlog"
