@@ -1,0 +1,12 @@
+{
+  "_v": 1,
+  "alias": "adjust-color-scale-in-2",
+  "alias_explicit": false,
+  "created_at_millis": 1767586950747,
+  "creator": "Alexander Terp",
+  "description": "Consider recalibrating the color scale when in adjusted mode. Currently everything narrows toward the middle and becomes orange. Perhaps 7.9 should be the new green to better differentiate ratings.",
+  "id": "2RcNmu4Y",
+  "title": "Adjust color scale in adjusted mode",
+  "type": "enhancement",
+  "updated_at_millis": 1767586962715
+}
