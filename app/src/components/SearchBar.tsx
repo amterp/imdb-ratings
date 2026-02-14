@@ -44,6 +44,7 @@ export function SearchBar({ shows, onSelectShow, isLoading }: SearchBarProps) {
             value={query}
             disabled={isLoading}
             autoComplete="off"
+            autoFocus
           />
 
           {filteredShows.length > 0 && query !== '' && (
