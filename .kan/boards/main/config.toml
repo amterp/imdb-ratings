@@ -1,48 +1,48 @@
-kan_schema = "board/2"
-id = "2RWmsIPz"
-name = "main"
 default_column = "backlog"
+id = "2RWmsIPz"
+kan_schema = "board/8"
+name = "main"
+
+[card_display]
+  type_indicator = "type"
 
 [[columns]]
-  name = "undecided"
-  color = "#a855f7"
   card_ids = ["2RcNmu4Y", "2RcOMyCT", "2Rpd00De"]
+  color = "#a855f7"
+  name = "undecided"
 
 [[columns]]
-  name = "backlog"
   color = "#6b7280"
+  name = "backlog"
 
 [[columns]]
-  name = "next"
   color = "#3b82f6"
+  name = "next"
 
 [[columns]]
-  name = "in-progress"
   color = "#f59e0b"
+  name = "in-progress"
 
 [[columns]]
-  name = "done"
   color = "#10b981"
+  name = "done"
 
 [custom_fields]
   [custom_fields.type]
     type = "enum"
 
     [[custom_fields.type.options]]
-      value = "bug"
       color = "#ef4444"
+      value = "bug"
 
     [[custom_fields.type.options]]
-      value = "enhancement"
       color = "#3b82f6"
+      value = "enhancement"
 
     [[custom_fields.type.options]]
-      value = "feature"
       color = "#22c55e"
+      value = "feature"
 
     [[custom_fields.type.options]]
-      value = "chore"
       color = "#6b7280"
-
-[card_display]
-  type_indicator = "type"
+      value = "chore"
