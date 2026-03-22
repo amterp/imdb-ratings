@@ -50,10 +50,15 @@ jobs:
             echo "generated dataset successfully"
             git config user.name github-actions
             git config user.email github-actions@github.com
-            git add -A data/*
-            git commit -m "Update data"
-            git push
-            echo "pushed=true" >> $GITHUB_OUTPUT
+            git add -A data/
+            if git diff --cached --quiet; then
+              echo "no data changes to commit"
+              echo "pushed=false" >> $GITHUB_OUTPUT
+            else
+              git commit -m "Update data"
+              git push
+              echo "pushed=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "failed to generate dataset"
             echo "pushed=false" >> $GITHUB_OUTPUT
