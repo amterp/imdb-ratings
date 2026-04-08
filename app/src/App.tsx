@@ -20,7 +20,7 @@ import { formatVotes } from './utils/statsUtils';
 import type { ShowMetadata } from './types';
 
 function App() {
-  const { showId, setShowId } = useUrlState();
+  const { showId, setShowId, initialSearchQuery, clearSearchQuery } = useUrlState();
   const { tier, toggleTier } = useCatalogTier();
   const { recentlyViewed, addRecentlyViewed } = useRecentlyViewed();
   const { starredShows, isStarred, toggleStarred, removeStarred, reorderStarred } =
@@ -107,6 +107,8 @@ function App() {
             shows={showCatalog || []}
             onSelectShow={handleSelectShow}
             isLoading={isCatalogLoading}
+            initialQuery={initialSearchQuery}
+            onInitialQueryConsumed={clearSearchQuery}
           />
 
           <StatusIndicator

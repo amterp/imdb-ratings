@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Combobox } from '@headlessui/react';
 import type { ShowMetadata } from '@/types';
 
@@ -6,10 +6,29 @@ interface SearchBarProps {
   shows: ShowMetadata[];
   onSelectShow: (show: ShowMetadata) => void;
   isLoading: boolean;
+  initialQuery?: string | null;
+  onInitialQueryConsumed?: () => void;
 }
 
-export function SearchBar({ shows, onSelectShow, isLoading }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+export function SearchBar({ shows, onSelectShow, isLoading, initialQuery, onInitialQueryConsumed }: SearchBarProps) {
+  const [query, setQuery] = useState(initialQuery ?? '');
+  const initialConsumed = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the search input once it's enabled so the Combobox registers the focus event
+  useEffect(() => {
+    if (!isLoading) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading]);
+
+  // Once the catalog has loaded with a pre-filled query, signal that the URL param can be cleared
+  useEffect(() => {
+    if (!initialConsumed.current && initialQuery && !isLoading && shows.length > 0) {
+      initialConsumed.current = true;
+      onInitialQueryConsumed?.();
+    }
+  }, [initialQuery, isLoading, shows.length, onInitialQueryConsumed]);
 
   const filteredShows = useMemo(() => {
     if (query === '') {
@@ -25,6 +44,7 @@ export function SearchBar({ shows, onSelectShow, isLoading }: SearchBarProps) {
   return (
     <div className="w-full max-w-2xl mx-auto relative z-10">
       <Combobox
+        immediate
         onChange={(show: ShowMetadata | null) => {
           if (show) {
             onSelectShow(show);
@@ -43,8 +63,8 @@ export function SearchBar({ shows, onSelectShow, isLoading }: SearchBarProps) {
             onChange={(event) => setQuery(event.target.value)}
             value={query}
             disabled={isLoading}
+            ref={inputRef}
             autoComplete="off"
-            autoFocus
           />
 
           {filteredShows.length > 0 && query !== '' && (
