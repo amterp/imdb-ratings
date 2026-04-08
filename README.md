@@ -2,7 +2,7 @@
 
 Website that visualizes IMDb ratings of TV show episodes as interactive heatmaps.
 
-**Live Site:** https://amterp.github.io/imdb-ratings/
+**Live Site:** https://amterp.dev/imdb-ratings/
 
 ![website](./assets/screenshot.png)
 
